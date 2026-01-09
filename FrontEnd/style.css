@@ -240,3 +240,20 @@ input:focus {
     text-transform: uppercase;
     margin-top: 5px;
 }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    input, button {
+        font-size: 18px; /* Better for mobile touch */
+        padding: 15px;
+    }
+    
+    .workout-form, .workout-list, .stats {
+        padding: 15px;
+        margin: 15px 0;
+    }
+}
