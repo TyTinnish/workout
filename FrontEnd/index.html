@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Workout Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>💪 My Workout Tracker</h1>
+        
+        <div class="workout-form">
+            <h3>Log Your Workout</h3>
+            <input type="text" id="exercise" placeholder="Exercise (e.g., Bench Press)">
+            <input type="number" id="sets" placeholder="Sets">
+            <input type="number" id="reps" placeholder="Reps">
+            <input type="number" id="weight" placeholder="Weight (lbs)">
+            <button onclick="addWorkout()">Add Workout</button>
+        </div>
+        
+        <div class="workout-list">
+            <h3>Today's Workouts</h3>
+            <ul id="workouts"></ul>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
