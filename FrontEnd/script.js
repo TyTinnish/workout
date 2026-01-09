@@ -49,5 +49,13 @@ function displayWorkouts() {
     });
 }
 
+function clearWorkouts() {
+    if (confirm('Delete all workouts?')) {
+        workouts = [];
+        localStorage.removeItem('workouts');
+        displayWorkouts();
+    }
+}
+
 // Display workouts on page load
 displayWorkouts();
