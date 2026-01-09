@@ -1,61 +1,146 @@
-// Simple workout tracker - stores data in browser
-let workouts = JSON.parse(localStorage.getItem('workouts')) || [];
-
-function addWorkout() {
-    const exercise = document.getElementById('exercise').value;
-    const sets = document.getElementById('sets').value;
-    const reps = document.getElementById('reps').value;
-    const weight = document.getElementById('weight').value;
-    
-    if (!exercise || !sets || !reps || !weight) {
-        alert('Please fill in all fields');
-        return;
+// Enhanced workout tracker with better localStorage handling
+class WorkoutTracker {
+    constructor() {
+        this.workouts = this.loadWorkouts();
+        this.init();
     }
     
-    const workout = {
-        exercise,
-        sets: parseInt(sets),
-        reps: parseInt(reps),
-        weight: parseInt(weight),
-        date: new Date().toLocaleDateString()
-    };
+    loadWorkouts() {
+        try {
+            const saved = localStorage.getItem('workoutTracker');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.error('Error loading workouts:', e);
+            return [];
+        }
+    }
     
-    workouts.push(workout);
-    localStorage.setItem('workouts', JSON.stringify(workouts));
+    saveWorkouts() {
+        try {
+            localStorage.setItem('workoutTracker', JSON.stringify(this.workouts));
+        } catch (e) {
+            console.error('Error saving workouts:', e);
+        }
+    }
     
-    // Clear inputs
-    document.getElementById('exercise').value = '';
-    document.getElementById('sets').value = '';
-    document.getElementById('reps').value = '';
-    document.getElementById('weight').value = '';
+    init() {
+        this.setupEventListeners();
+        this.displayWorkouts();
+    }
     
-    // Update display
-    displayWorkouts();
-}
-
-function displayWorkouts() {
-    const list = document.getElementById('workouts');
-    list.innerHTML = '';
+    setupEventListeners() {
+        document.getElementById('addWorkoutBtn').addEventListener('click', () => this.addWorkout());
+        
+        // Add Enter key support
+        document.getElementById('exercise').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addWorkout();
+        });
+    }
     
-    workouts.forEach(workout => {
-        const item = document.createElement('li');
-        item.className = 'workout-item';
-        item.innerHTML = `
-            <strong>${workout.exercise}</strong><br>
-            ${workout.sets} sets × ${workout.reps} reps × ${workout.weight} lbs<br>
-            <small>${workout.date}</small>
-        `;
-        list.appendChild(item);
-    });
-}
-
-function clearWorkouts() {
-    if (confirm('Delete all workouts?')) {
-        workouts = [];
-        localStorage.removeItem('workouts');
-        displayWorkouts();
+    addWorkout() {
+        const exercise = document.getElementById('exercise').value.trim();
+        const sets = document.getElementById('sets').value;
+        const reps = document.getElementById('reps').value;
+        const weight = document.getElementById('weight').value;
+        
+        // Validation
+        if (!exercise || !sets || !reps || !weight) {
+            this.showMessage('Please fill in all fields', 'error');
+            return;
+        }
+        
+        if (sets <= 0 || reps <= 0 || weight <= 0) {
+            this.showMessage('Values must be greater than 0', 'error');
+            return;
+        }
+        
+        const workout = {
+            id: Date.now(), // Unique ID for each workout
+            exercise,
+            sets: parseInt(sets),
+            reps: parseInt(reps),
+            weight: parseInt(weight),
+            date: new Date().toLocaleString(),
+            timestamp: Date.now()
+        };
+        
+        this.workouts.unshift(workout); // Add to beginning
+        this.saveWorkouts();
+        this.displayWorkouts();
+        this.clearForm();
+        this.showMessage('Workout added successfully!', 'success');
+    }
+    
+    displayWorkouts() {
+        const list = document.getElementById('workouts');
+        list.innerHTML = '';
+        
+        if (this.workouts.length === 0) {
+            list.innerHTML = '<p class="empty-state">No workouts yet. Add your first one!</p>';
+            return;
+        }
+        
+        this.workouts.forEach(workout => {
+            const item = document.createElement('li');
+            item.className = 'workout-item';
+            item.innerHTML = `
+                <div class="workout-header">
+                    <strong>${workout.exercise}</strong>
+                    <button class="delete-btn" data-id="${workout.id}">×</button>
+                </div>
+                <div class="workout-details">
+                    ${workout.sets} sets × ${workout.reps} reps × ${workout.weight} lbs
+                </div>
+                <div class="workout-footer">
+                    <small>${workout.date}</small>
+                    <span class="volume">Total: ${workout.sets * workout.reps * workout.weight} lbs</span>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+        
+        // Add delete functionality
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.target.dataset.id);
+                this.deleteWorkout(id);
+            });
+        });
+    }
+    
+    deleteWorkout(id) {
+        if (confirm('Delete this workout?')) {
+            this.workouts = this.workouts.filter(w => w.id !== id);
+            this.saveWorkouts();
+            this.displayWorkouts();
+            this.showMessage('Workout deleted', 'info');
+        }
+    }
+    
+    clearForm() {
+        document.getElementById('exercise').value = '';
+        document.getElementById('sets').value = '';
+        document.getElementById('reps').value = '';
+        document.getElementById('weight').value = '';
+        document.getElementById('exercise').focus();
+    }
+    
+    showMessage(text, type) {
+        // Create message element
+        const message = document.createElement('div');
+        message.className = `message message-${type}`;
+        message.textContent = text;
+        
+        // Add to page
+        const container = document.querySelector('.container');
+        container.insertBefore(message, container.firstChild);
+        
+        // Remove after 3 seconds
+        setTimeout(() => message.remove(), 3000);
     }
 }
 
-// Display workouts on page load
-displayWorkouts();
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    window.workoutTracker = new WorkoutTracker();
+});
