@@ -26,6 +26,7 @@ class WorkoutTracker {
     init() {
         this.setupEventListeners();
         this.displayWorkouts();
+        this.updateStats();
     }
     
     setupEventListeners() {
@@ -69,6 +70,7 @@ class WorkoutTracker {
         this.displayWorkouts();
         this.clearForm();
         this.showMessage('Workout added successfully!', 'success');
+        this.updateStats();
     }
     
     displayWorkouts() {
@@ -106,6 +108,8 @@ class WorkoutTracker {
                 this.deleteWorkout(id);
             });
         });
+
+        this.updateStats();
     }
     
     deleteWorkout(id) {
@@ -114,6 +118,7 @@ class WorkoutTracker {
             this.saveWorkouts();
             this.displayWorkouts();
             this.showMessage('Workout deleted', 'info');
+            this.updateStats();
         }
     }
     
@@ -137,6 +142,33 @@ class WorkoutTracker {
         
         // Remove after 3 seconds
         setTimeout(() => message.remove(), 3000);
+    }
+
+    updateStats() {
+        // Get today's date for filtering
+        const today = new Date().toDateString();
+        
+        // Filter workouts from today
+        const todayWorkouts = this.workouts.filter(w => {
+            const workoutDate = new Date(w.timestamp).toDateString();
+            return workoutDate === today;
+        });
+        
+        // Calculate statistics
+        let totalVolume = 0;
+        let totalWeight = 0;
+        
+        todayWorkouts.forEach(workout => {
+            totalVolume += workout.sets * workout.reps * workout.weight;
+            totalWeight += workout.weight;
+        });
+        
+        const avgWeight = todayWorkouts.length > 0 ? Math.round(totalWeight / todayWorkouts.length) : 0;
+        
+        // Update the DOM elements
+        document.getElementById('totalWorkouts').textContent = todayWorkouts.length;
+        document.getElementById('totalVolume').textContent = totalVolume.toLocaleString();
+        document.getElementById('avgWeight').textContent = avgWeight;
     }
 }
 
