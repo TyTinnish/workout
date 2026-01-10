@@ -5,26 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Workout Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div style="margin-top: 20px; text-align: center;">
-        <button id="clearAllBtn" class="clear-btn">Clear All Workouts</button>
-    </div>
-    
     <div class="container">
-        <h1>My Workout Tracker</h1>
+        <h1>💪 My Workout Tracker</h1>
         
         <div class="workout-form">
             <h3>Log Your Workout</h3>
-            <input type="text" id="exercise" placeholder="Exercise (e.g., Bench Press)">
-            <input type="number" id="sets" placeholder="Sets">
-            <input type="number" id="reps" placeholder="Reps">
-            <input type="number" id="weight" placeholder="Weight (lbs)">
-            <button id="addWorkoutBtn">Add Workout</button>
+            
+            <!-- Date input with label -->
+            <div class="form-group">
+                <label for="workoutDate">Workout Date:</label>
+                <input type="date" id="workoutDate">
+            </div>
+            
+            <!-- Exercise -->
+            <div class="form-group">
+                <label for="exercise">Exercise:</label>
+                <input type="text" id="exercise" placeholder="e.g., Bench Press" required>
+            </div>
+            
+            <!-- Sets -->
+            <div class="form-group">
+                <label for="sets">Sets:</label>
+                <input type="number" id="sets" placeholder="3" min="1" required>
+            </div>
+            
+            <!-- Reps -->
+            <div class="form-group">
+                <label for="reps">Reps:</label>
+                <input type="number" id="reps" placeholder="10" min="1" required>
+            </div>
+            
+            <!-- Weight -->
+            <div class="form-group">
+                <label for="weight">Weight (lbs):</label>
+                <input type="number" id="weight" placeholder="135" min="1" step="5" required>
+            </div>
+            
+            <button id="addWorkoutBtn" class="primary-btn">Add Workout</button>
         </div>
         
         <div class="workout-list">
-            <h3>Today's Workouts</h3>
+            <h3>Your Workouts</h3>
             <ul id="workouts"></ul>
         </div>
 
@@ -44,6 +68,29 @@
                     <div class="stat-label">Avg. Weight</div>
                 </div>
             </div>
+        </div>
+
+        <div class="charts">
+            <h3>📈 Progress Over Time</h3>
+            <canvas id="progressChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div class="timer">
+            <h3>⏱️ Rest Timer</h3>
+            <div id="timerDisplay">01:30</div>
+            <button id="startTimer">Start Timer (90s)</button>
+            <button id="resetTimer">Reset</button>
+        </div>
+        
+        <div class="data-actions">
+            <button id="exportBtn" class="secondary-btn">📥 Export Data</button>
+            <label for="importFile" class="secondary-btn">📤 Import Data
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+            </label>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <button id="clearAllBtn" class="clear-btn">Clear All Workouts</button>
         </div>
         
     </div>
