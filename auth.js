@@ -4,26 +4,60 @@ console.log('Loading auth.js...');
 // Global auth instance
 let authInstance = null;
 
-// Wait for config and Supabase to load
+// Wait for config to load
 function initializeAuth() {
+    console.log('Initializing auth...');
+    
+    // Check if config is loaded
+    if (!window.APP_CONFIG || !window.APP_CONFIG.apiUrl) {
+        console.log('Waiting for config to load...');
+        document.addEventListener('configLoaded', initializeAuth);
+        return;
+    }
+    
+    // Check for Supabase CDN
     if (typeof supabase === 'undefined') {
         console.error('Supabase not loaded yet');
         setTimeout(initializeAuth, 100);
         return;
     }
     
-    if (!window.SUPABASE_CONFIG) {
-        console.error('Config not loaded yet');
-        setTimeout(initializeAuth, 100);
+    console.log('Config loaded, initializing Supabase client...');
+    
+    // Initialize Supabase client with config
+    const supabaseClient = supabase.createClient(
+        window.APP_CONFIG.supabaseUrl,  // Will be empty if not from server
+        window.APP_CONFIG.supabaseAnonKey,  // Will be empty if not from server
+        {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                storage: window.localStorage,
+                detectSessionInUrl: false
+            }
+        }
+    );
+    
+    // For development/testing, you can hardcode credentials temporarily
+    // but REMOVE this before deploying to production
+    const DEVELOPMENT_CONFIG = {
+        url: '',  // Add your Supabase URL here for development only
+        anonKey: ''  // Add your Supabase anon key here for development only
+    };
+    
+    // Use development config if server config not available
+    let effectiveUrl = window.APP_CONFIG.supabaseUrl || DEVELOPMENT_CONFIG.url;
+    let effectiveKey = window.APP_CONFIG.supabaseAnonKey || DEVELOPMENT_CONFIG.anonKey;
+    
+    if (!effectiveUrl || !effectiveKey) {
+        console.error('Supabase credentials not configured');
+        console.log('Please ensure config is loaded from server or set in development config');
         return;
     }
     
-    console.log('Initializing auth...');
-    
-    // Initialize Supabase client
-    const supabaseClient = supabase.createClient(
-        window.SUPABASE_CONFIG.url,
-        window.SUPABASE_CONFIG.anonKey,
+    const finalSupabaseClient = supabase.createClient(
+        effectiveUrl,
+        effectiveKey,
         {
             auth: {
                 persistSession: true,
@@ -36,7 +70,7 @@ function initializeAuth() {
     
     class SimpleAuth {
         constructor() {
-            this.supabase = supabaseClient;
+            this.supabase = finalSupabaseClient;
             this.currentUser = null;
             this.session = null;
             this.init();
@@ -410,7 +444,7 @@ function initializeAuth() {
     // Initialize and expose
     authInstance = new SimpleAuth();
     window.supabaseAuth = authInstance;
-    window.supabaseClient = supabaseClient;
+    window.supabaseClient = finalSupabaseClient;
     
     console.log('✅ Auth initialized');
     

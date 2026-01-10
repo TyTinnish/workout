@@ -25,6 +25,16 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve public configuration (safe to expose)
+app.get('/api/public-config', (req, res) => {
+    res.json({
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseAnonKey: process.env.SUPABASE_ANON_KEY, // This is safe - anon key is meant for frontend
+        appName: 'Workout Tracker',
+        apiUrl: `http://localhost:${process.env.PORT || 3000}`
+    });
+});
+
 // Public config
 app.get('/api/public-config', (req, res) => {
     res.json({
