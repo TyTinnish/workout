@@ -262,68 +262,124 @@ class WorkoutTracker {
     }
 
     renderChart() {
+        console.log("Rendering chart with", this.workouts.length, "workouts");
         const ctx = document.getElementById('progressChart');
         if (!ctx) return;
         
         // Destroy existing chart if it exists
         if (this.chart) {
             this.chart.destroy();
+            this.chart = null;
         }
         
-        // Group workouts by date
-        const workoutsByDate = {};
-        this.workouts.forEach(w => {
-            const dateKey = new Date(w.timestamp).toLocaleDateString('en-US', {
+        // Get last 7 days of data
+        const last7Days = Array.from({length: 7}, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i)); // Last 7 days including today
+            return date.toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric'
             });
-            if (!workoutsByDate[dateKey]) workoutsByDate[dateKey] = 0;
-            workoutsByDate[dateKey] += w.sets * w.reps * w.weight;
         });
         
-        const dates = Object.keys(workoutsByDate).slice(-7); // Last 7 days
-        const volumes = dates.map(date => workoutsByDate[date]);
+        // Initialize volumes for each day to 0
+        const volumesByDate = {};
+        last7Days.forEach(date => {
+            volumesByDate[date] = 0;
+        });
+        
+        // Fill in actual workout volumes
+        this.workouts.forEach(w => {
+            const workoutDate = new Date(w.timestamp).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            // Only include if it's in our last 7 days range
+            if (volumesByDate.hasOwnProperty(workoutDate)) {
+                volumesByDate[workoutDate] += w.sets * w.reps * w.weight;
+            }
+        });
+        
+        // Convert to arrays for Chart.js
+        const volumes = last7Days.map(date => volumesByDate[date]);
         
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: dates,
+                labels: last7Days,
                 datasets: [{
-                    label: 'Daily Volume',
+                    label: 'Daily Volume (lbs)',
                     data: volumes,
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     borderWidth: 3,
-                    tension: 0.3,
-                    fill: true
+                    tension: 0.2,
+                    fill: true,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false, // CHANGED THIS LINE
                 plugins: {
                     legend: { 
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Volume: ${context.raw.toLocaleString()} lbs`;
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0,0,0,0.1)'
+                            color: 'rgba(0,0,0,0.05)'
                         },
                         ticks: {
                             callback: function(value) {
                                 return value.toLocaleString() + ' lbs';
+                            },
+                            font: {
+                                size: 11
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Volume (lbs)',
+                            font: {
+                                size: 12,
+                                weight: 'bold'
                             }
                         }
                     },
                     x: {
                         grid: {
-                            color: 'rgba(0,0,0,0.1)'
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
                         }
                     }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
                 }
             }
         });
