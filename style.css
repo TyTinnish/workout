@@ -26,16 +26,173 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Auth Modal */
+.auth-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.auth-container {
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #eee;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 15px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.auth-tab.active {
+    color: #667eea;
+}
+
+.auth-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #667eea;
+    border-radius: 3px;
+}
+
+.auth-content {
+    position: relative;
+    min-height: 300px;
+}
+
+.auth-form {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+.auth-form h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #333;
+}
+
+.auth-switch {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-size: 14px;
+}
+
+.auth-switch a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+/* User Profile */
+.user-profile {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 0 auto 20px auto;
+    max-width: 900px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-info h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.profile-info p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.logout-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.logout-btn:hover {
+    background: #c82333;
+}
+
+/* Main App Styles */
 h1 {
     color: #333;
     margin-bottom: 30px;
     text-align: center;
     font-size: 2.5em;
     background: linear-gradient(90deg, #667eea, #764ba2);
-    background-clip: text; /* Standard property */
-    -webkit-background-clip: text; /* Safari/Chrome */
-    -webkit-text-fill-color: transparent; /* Safari/Chrome */
-    color: transparent; /* Fallback for other browsers */
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
 .workout-form {
@@ -278,7 +435,7 @@ input:focus, select:focus {
     border-radius: 10px;
     padding: 20px;
     margin: 30px 0;
-    height: 350px; /* Fixed height */
+    height: 350px;
     position: relative;
 }
 
@@ -394,7 +551,13 @@ input:focus, select:focus {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-    .container {
+    .container, .user-profile {
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .auth-container {
+        margin: 10px;
         padding: 20px;
     }
     
@@ -427,5 +590,15 @@ input:focus, select:focus {
     
     h1 {
         font-size: 2em;
+    }
+    
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .logout-btn {
+        width: 100%;
     }
 }

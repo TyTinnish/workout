@@ -5,10 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Workout Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💪</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- Login/Signup Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-container">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+            
+            <div class="auth-content">
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form active">
+                    <h3>Welcome Back! 👋</h3>
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="primary-btn">Sign In</button>
+                    <p class="auth-switch">Don't have an account? <a href="#" class="switch-to-register">Sign up</a></p>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form">
+                    <h3>Create Account 🏋️</h3>
+                    <div class="form-group">
+                        <label for="registerName">Name</label>
+                        <input type="text" id="registerName" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" placeholder="••••••••" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirmPassword">Confirm Password</label>
+                        <input type="password" id="registerConfirmPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="primary-btn">Create Account</button>
+                    <p class="auth-switch">Already have an account? <a href="#" class="switch-to-login">Sign in</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Section (shown after login) -->
+    <div id="userProfile" class="user-profile" style="display: none;">
+        <div class="profile-header">
+            <img src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff" 
+                 alt="Profile" class="profile-avatar">
+            <div class="profile-info">
+                <h3 id="userName">User</h3>
+                <p id="userEmail">user@example.com</p>
+            </div>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <!-- Main App (initially hidden) -->
+    <div id="appContainer" class="container" style="display: none;">
         <h1>💪 My Workout Tracker</h1>
         
         <div class="workout-form">
@@ -92,9 +157,9 @@
         <div style="margin-top: 20px; text-align: center;">
             <button id="clearAllBtn" class="clear-btn">Clear All Workouts</button>
         </div>
-        
     </div>
     
+    <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,14 +1,29 @@
-// Enhanced workout tracker with better localStorage handling
+// Enhanced workout tracker with user authentication support
 class WorkoutTracker {
     constructor() {
+        // Wait for auth system to be ready
+        if (!window.authSystem) {
+            console.error('Auth system not loaded');
+            return;
+        }
+        
+        this.currentUser = window.authSystem.getCurrentUser();
+        if (!this.currentUser) {
+            console.log('No user logged in, WorkoutTracker not initialized');
+            return;
+        }
+        
         this.workouts = this.loadWorkouts();
-        this.chart = null; // Store chart instance
+        this.chart = null;
         this.init();
     }
     
     loadWorkouts() {
         try {
-            const saved = localStorage.getItem('workoutTracker');
+            if (!this.currentUser) return [];
+            
+            const userWorkoutsKey = `workoutTracker_workouts_${this.currentUser.id}`;
+            const saved = localStorage.getItem(userWorkoutsKey);
             return saved ? JSON.parse(saved) : [];
         } catch (e) {
             console.error('Error loading workouts:', e);
@@ -18,7 +33,10 @@ class WorkoutTracker {
     
     saveWorkouts() {
         try {
-            localStorage.setItem('workoutTracker', JSON.stringify(this.workouts));
+            if (!this.currentUser) return;
+            
+            const userWorkoutsKey = `workoutTracker_workouts_${this.currentUser.id}`;
+            localStorage.setItem(userWorkoutsKey, JSON.stringify(this.workouts));
         } catch (e) {
             console.error('Error saving workouts:', e);
         }
@@ -114,7 +132,8 @@ class WorkoutTracker {
             weight: parseInt(weight),
             date: formattedDate,
             timestamp: dateObj.getTime(),
-            rawDate: workoutDate
+            rawDate: workoutDate,
+            userId: this.currentUser.id // Associate with user
         };
         
         this.workouts.unshift(workout); // Add to beginning
@@ -194,12 +213,12 @@ class WorkoutTracker {
     
     showMessage(text, type) {
         // Remove any existing messages first
-        const existingMessages = document.querySelectorAll('.message');
+        const existingMessages = document.querySelectorAll('.app-message');
         existingMessages.forEach(msg => msg.remove());
         
         // Create message element
         const message = document.createElement('div');
-        message.className = `message message-${type}`;
+        message.className = `message app-message message-${type}`;
         message.textContent = text;
         
         // Add to page
@@ -262,7 +281,6 @@ class WorkoutTracker {
     }
 
     renderChart() {
-        console.log("Rendering chart with", this.workouts.length, "workouts");
         const ctx = document.getElementById('progressChart');
         if (!ctx) return;
         
@@ -324,7 +342,7 @@ class WorkoutTracker {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // CHANGED THIS LINE
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { 
                         display: true,
@@ -389,7 +407,7 @@ class WorkoutTracker {
         const dataStr = JSON.stringify(this.workouts, null, 2);
         const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
         
-        const exportFileDefaultName = `workouts-${new Date().toISOString().split('T')[0]}.json`;
+        const exportFileDefaultName = `workouts-${this.currentUser.name}-${new Date().toISOString().split('T')[0]}.json`;
         
         const linkElement = document.createElement('a');
         linkElement.setAttribute('href', dataUri);
@@ -412,7 +430,14 @@ class WorkoutTracker {
                     throw new Error('Invalid file format');
                 }
                 
-                this.workouts = imported;
+                // Add current user ID to imported workouts
+                const workoutsWithUserId = imported.map(workout => ({
+                    ...workout,
+                    userId: this.currentUser.id,
+                    id: workout.id || Date.now() + Math.random()
+                }));
+                
+                this.workouts = workoutsWithUserId;
                 this.saveWorkouts();
                 this.displayWorkouts();
                 this.showMessage(`Imported ${imported.length} workouts successfully!`, 'success');
@@ -485,9 +510,23 @@ class WorkoutTracker {
     }
 }
 
-// Initialize when page loads
+// Initialize workout tracker when auth state changes
 document.addEventListener('DOMContentLoaded', () => {
-    window.workoutTracker = new WorkoutTracker();
+    window.workoutTracker = null;
+    
+    const initWorkoutTracker = () => {
+        if (window.authSystem?.isAuthenticated()) {
+            window.workoutTracker = new WorkoutTracker();
+        } else {
+            window.workoutTracker = null;
+        }
+    };
+    
+    // Listen for auth state changes
+    document.addEventListener('authStateChanged', initWorkoutTracker);
+    
+    // Initial check
+    initWorkoutTracker();
 });
 
 // Make methods available globally for debugging
