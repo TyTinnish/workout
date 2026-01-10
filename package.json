@@ -4,6 +4,8 @@
   "description": "A full-featured workout tracking application with cloud synchronization, user authentication, and progress analytics.",
   "main": "auth.js",
   "scripts": {
+    "start": "node auth.js",
+    "dev": "node auth.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
