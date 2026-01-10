@@ -339,6 +339,8 @@ document.addEventListener('configLoaded', () => {
         async loadUserProfile() {
             if (!this.currentUser) return;
             
+            console.log('Loading profile for user:', this.currentUser.id);
+            
             try {
                 const { data, error } = await this.supabase
                     .from('profiles')
@@ -346,42 +348,98 @@ document.addEventListener('configLoaded', () => {
                     .eq('id', this.currentUser.id)
                     .single();
                 
-                if (error && error.code === 'PGRST116') {
-                    // Profile doesn't exist yet - create it
-                    await this.createUserProfile();
-                } else if (error) {
-                    console.warn('Profile load warning:', error.message);
+                if (error) {
+                    console.log('Profile load error:', error);
+                    
+                    // Profile might not exist yet - try to fetch from API to trigger creation
+                    if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
+                        console.log('Profile not found in direct query, trying API...');
+                        await this.createUserProfileViaAPI();
+                    } else {
+                        console.warn('Profile load warning:', error.message);
+                        // Try API as fallback
+                        await this.createUserProfileViaAPI();
+                    }
                 } else {
                     this.userProfile = data;
+                    console.log('Profile loaded:', data.email);
                 }
             } catch (error) {
                 console.error('Profile load error:', error);
+                // Silently fail and try API
+                await this.createUserProfileViaAPI();
             }
         }
-        
+
+        async createUserProfileViaAPI() {
+            if (!this.currentUser || !this.session) return;
+            
+            try {
+                console.log('Creating profile via API...');
+                
+                const response = await fetch(`${window.APP_CONFIG?.apiUrl || 'http://localhost:3000/api'}/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${this.session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const profile = await response.json();
+                    this.userProfile = profile;
+                    console.log('✅ Profile created via API:', profile.email);
+                } else {
+                    const errorData = await response.json();
+                    console.error('API profile creation failed:', errorData);
+                    
+                    // Show user-friendly error
+                    if (errorData.code === 'MISSING_TABLE') {
+                        this.showMessage(
+                            'Database setup required. Please contact administrator.',
+                            'error',
+                            'app'
+                        );
+                    }
+                }
+            } catch (error) {
+                console.error('API profile creation error:', error);
+            }
+        }
+
         async createUserProfile() {
             if (!this.currentUser) return;
             
             try {
+                console.log('Creating profile directly...');
+                
                 const { data, error } = await this.supabase
                     .from('profiles')
                     .insert([{
                         id: this.currentUser.id,
-                        name: this.currentUser.user_metadata?.name || this.currentUser.email?.split('@')[0] || 'User',
+                        name: this.currentUser.user_metadata?.name || 
+                            this.currentUser.email?.split('@')[0] || 
+                            'User',
                         email: this.currentUser.email,
-                        created_at: new Date().toISOString()
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
                     }])
                     .select()
                     .single();
                 
                 if (error) {
-                    console.error('Create profile error:', error);
+                    console.error('Direct profile creation error:', error);
+                    
+                    // If direct creation fails, try API
+                    await this.createUserProfileViaAPI();
                 } else {
                     this.userProfile = data;
-                    console.log('✅ Created user profile');
+                    console.log('✅ Profile created directly:', data.email);
                 }
             } catch (error) {
                 console.error('Create profile error:', error);
+                // Try API as fallback
+                await this.createUserProfileViaAPI();
             }
         }
         

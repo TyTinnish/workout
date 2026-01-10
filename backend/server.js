@@ -261,42 +261,71 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
     }
 });
 
-// Profile endpoint
+// Profile endpoint - UPDATED VERSION
 app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
+        console.log(`📋 Fetching profile for user: ${req.user.id}`);
+        
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', req.user.id)
             .single();
         
-        if (error && error.code === 'PGRST116') {
-            // Profile doesn't exist, create one
-            const { data: newProfile, error: createError } = await supabase
-                .from('profiles')
-                .insert([{
-                    id: req.user.id,
-                    name: req.user.user_metadata?.name || req.user.email.split('@')[0],
-                    email: req.user.email,
-                    created_at: new Date().toISOString()
-                }])
-                .select()
-                .single();
+        if (error) {
+            console.log('Profile fetch error:', error);
             
-            if (createError) throw createError;
+            // Check if it's a "not found" error
+            if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
+                console.log('Profile not found, creating one...');
+                
+                // Try to create the profile
+                const { data: newProfile, error: createError } = await supabase
+                    .from('profiles')
+                    .insert([{
+                        id: req.user.id,
+                        name: req.user.user_metadata?.name || 
+                              req.user.email?.split('@')[0] || 
+                              'User',
+                        email: req.user.email,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }])
+                    .select()
+                    .single();
+                
+                if (createError) {
+                    console.error('Profile creation error:', createError);
+                    
+                    // Provide more helpful error message
+                    if (createError.message.includes('profiles')) {
+                        return res.status(500).json({ 
+                            error: 'Database table "profiles" does not exist or you lack permissions',
+                            code: 'MISSING_TABLE',
+                            details: 'Please create the profiles table in your Supabase database',
+                            hint: 'Run the SQL provided in the server logs or documentation'
+                        });
+                    }
+                    
+                    throw createError;
+                }
+                
+                console.log(`✅ Created new profile for: ${newProfile.email}`);
+                return res.json(newProfile);
+            }
             
-            console.log(`📝 Created new profile for user: ${newProfile.email}`);
-            return res.json(newProfile);
+            throw error;
         }
         
-        if (error) throw error;
-        
+        console.log(`✅ Found existing profile for: ${data.email}`);
         res.json(data);
     } catch (error) {
         console.error('Profile error:', error);
         res.status(500).json({ 
-            error: 'Failed to fetch profile',
-            code: 'PROFILE_ERROR'
+            error: 'Failed to fetch or create profile',
+            code: 'PROFILE_ERROR',
+            details: error.message,
+            hint: 'Check if the profiles table exists and has proper permissions'
         });
     }
 });
