@@ -1,5 +1,8 @@
-// auth.js - SIMPLIFIED VERSION
+// auth.js - UPDATED VERSION
 console.log('Loading auth.js...');
+
+// Global auth instance
+let authInstance = null;
 
 // Wait for config and Supabase to load
 function initializeAuth() {
@@ -24,48 +27,94 @@ function initializeAuth() {
         {
             auth: {
                 persistSession: true,
-                autoRefreshToken: true
+                autoRefreshToken: true,
+                storage: window.localStorage,
+                detectSessionInUrl: false
             }
         }
     );
     
-    // Simple auth class
     class SimpleAuth {
         constructor() {
             this.supabase = supabaseClient;
             this.currentUser = null;
+            this.session = null;
             this.init();
         }
         
         async init() {
             console.log('Checking for existing session...');
             
-            // Check existing session
-            const { data: { session } } = await this.supabase.auth.getSession();
-            
-            if (session) {
-                console.log('Found existing session');
-                this.currentUser = session.user;
-                this.showApp();
-            } else {
-                console.log('No session found');
-                this.showAuth();
-            }
-            
-            // Listen for auth changes
-            this.supabase.auth.onAuthStateChange((event, session) => {
-                console.log('Auth state changed:', event);
+            try {
+                // Check existing session
+                const { data: { session }, error } = await this.supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Session error:', error);
+                    this.showAuth();
+                    return;
+                }
                 
                 if (session) {
+                    console.log('Found existing session for user:', session.user.email);
+                    this.session = session;
                     this.currentUser = session.user;
                     this.showApp();
+                    
+                    // IMPORTANT: Dispatch event immediately
+                    this.dispatchAuthEvent();
                 } else {
-                    this.currentUser = null;
+                    console.log('No session found');
                     this.showAuth();
                 }
+                
+                // Listen for auth changes
+                this.supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Auth state changed:', event);
+                    
+                    if (session) {
+                        this.session = session;
+                        this.currentUser = session.user;
+                        this.showApp();
+                        
+                        // Dispatch event on login
+                        this.dispatchAuthEvent();
+                        
+                        if (event === 'SIGNED_IN') {
+                            const name = this.currentUser.user_metadata?.name || 
+                                        this.currentUser.email?.split('@')[0] || 
+                                        'User';
+                            this.showMessage(`Welcome back, ${name}!`, 'success', 'app');
+                        }
+                    } else {
+                        this.session = null;
+                        this.currentUser = null;
+                        this.showAuth();
+                        
+                        if (event === 'SIGNED_OUT') {
+                            this.showMessage('Logged out successfully', 'info', 'auth');
+                        }
+                    }
+                });
+                
+                this.setupEventListeners();
+                
+            } catch (error) {
+                console.error('Auth init error:', error);
+                this.showAuth();
+            }
+        }
+        
+        dispatchAuthEvent() {
+            // Dispatch custom event for workout tracker
+            const event = new CustomEvent('authStateChanged', {
+                detail: { 
+                    user: this.currentUser,
+                    session: this.session 
+                }
             });
-            
-            this.setupEventListeners();
+            document.dispatchEvent(event);
+            console.log('Dispatched authStateChanged event');
         }
         
         setupEventListeners() {
@@ -104,16 +153,24 @@ function initializeAuth() {
             });
             
             // Switch to register
-            document.querySelector('.switch-to-register')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.switchTab('register');
-            });
+            const switchToRegister = document.querySelector('.switch-to-register');
+            if (switchToRegister) {
+                switchToRegister.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchTab('register');
+                });
+            }
             
             // Switch to login
-            document.querySelector('.switch-to-login')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.switchTab('login');
-            });
+            const switchToLogin = document.querySelector('.switch-to-login');
+            if (switchToLogin) {
+                switchToLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchTab('login');
+                });
+            }
+            
+            console.log('Event listeners setup complete');
         }
         
         async handleLogin() {
@@ -126,19 +183,34 @@ function initializeAuth() {
             }
             
             try {
+                this.showMessage('Logging in...', 'info', 'auth');
+                
                 const { data, error } = await this.supabase.auth.signInWithPassword({
                     email,
                     password
                 });
                 
-                if (error) throw error;
+                if (error) {
+                    if (error.message.includes('Invalid login credentials')) {
+                        throw new Error('Invalid email or password');
+                    }
+                    throw error;
+                }
                 
                 this.currentUser = data.user;
+                this.session = data.session;
+                
+                // Clear form
+                document.getElementById('loginForm').reset();
+                
                 this.showMessage('Login successful!', 'success', 'auth');
+                
+                // Dispatch event
+                this.dispatchAuthEvent();
                 
             } catch (error) {
                 console.error('Login error:', error);
-                this.showMessage(error.message, 'error', 'auth');
+                this.showMessage(error.message || 'Login failed', 'error', 'auth');
             }
         }
         
@@ -158,7 +230,14 @@ function initializeAuth() {
                 return;
             }
             
+            if (password.length < 6) {
+                this.showMessage('Password must be at least 6 characters', 'error', 'auth');
+                return;
+            }
+            
             try {
+                this.showMessage('Creating account...', 'info', 'auth');
+                
                 const { data, error } = await this.supabase.auth.signUp({
                     email,
                     password,
@@ -167,9 +246,18 @@ function initializeAuth() {
                     }
                 });
                 
-                if (error) throw error;
+                if (error) {
+                    if (error.message.includes('already registered')) {
+                        throw new Error('Email already registered');
+                    }
+                    throw error;
+                }
                 
-                this.showMessage('Registration successful! Please check your email.', 'success', 'auth');
+                this.showMessage(
+                    'Registration successful! You can now login.',
+                    'success', 
+                    'auth'
+                );
                 
                 // Clear form and switch to login
                 document.getElementById('registerForm').reset();
@@ -177,13 +265,21 @@ function initializeAuth() {
                 
             } catch (error) {
                 console.error('Registration error:', error);
-                this.showMessage(error.message, 'error', 'auth');
+                this.showMessage(error.message || 'Registration failed', 'error', 'auth');
             }
         }
         
         async handleLogout() {
-            await this.supabase.auth.signOut();
-            this.showMessage('Logged out successfully', 'info', 'auth');
+            try {
+                this.showMessage('Logging out...', 'info', 'app');
+                await this.supabase.auth.signOut();
+                this.currentUser = null;
+                this.session = null;
+                this.showMessage('Logged out successfully', 'info', 'auth');
+            } catch (error) {
+                console.error('Logout error:', error);
+                this.showMessage('Logout failed', 'error', 'auth');
+            }
         }
         
         switchTab(tabName) {
@@ -199,9 +295,15 @@ function initializeAuth() {
         }
         
         showApp() {
-            document.getElementById('authModal').style.display = 'none';
-            document.getElementById('userProfile').style.display = 'block';
-            document.getElementById('appContainer').style.display = 'block';
+            console.log('Showing app UI');
+            
+            const authModal = document.getElementById('authModal');
+            const userProfile = document.getElementById('userProfile');
+            const appContainer = document.getElementById('appContainer');
+            
+            if (authModal) authModal.style.display = 'none';
+            if (userProfile) userProfile.style.display = 'block';
+            if (appContainer) appContainer.style.display = 'block';
             
             // Update user info
             if (this.currentUser) {
@@ -210,8 +312,11 @@ function initializeAuth() {
                             'User';
                 const email = this.currentUser.email;
                 
-                document.getElementById('userName').textContent = name;
-                document.getElementById('userEmail').textContent = email;
+                const userNameElement = document.getElementById('userName');
+                const userEmailElement = document.getElementById('userEmail');
+                
+                if (userNameElement) userNameElement.textContent = name;
+                if (userEmailElement) userEmailElement.textContent = email;
                 
                 // Update avatar
                 const avatar = document.querySelector('.profile-avatar');
@@ -219,21 +324,25 @@ function initializeAuth() {
                     avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff`;
                 }
                 
-                // Dispatch event for workout tracker
-                document.dispatchEvent(new CustomEvent('authStateChanged', {
-                    detail: { user: this.currentUser }
-                }));
+                console.log('Updated user info:', name, email);
             }
         }
         
         showAuth() {
-            document.getElementById('authModal').style.display = 'flex';
-            document.getElementById('userProfile').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'none';
+            console.log('Showing auth UI');
             
-            // Reset forms
+            const authModal = document.getElementById('authModal');
+            const userProfile = document.getElementById('userProfile');
+            const appContainer = document.getElementById('appContainer');
+            
+            if (authModal) authModal.style.display = 'flex';
+            if (userProfile) userProfile.style.display = 'none';
+            if (appContainer) appContainer.style.display = 'none';
+            
+            // Reset forms and default to login tab
             document.getElementById('loginForm').reset();
             document.getElementById('registerForm').reset();
+            this.switchTab('login');
         }
         
         showMessage(text, type, location = 'auth') {
@@ -255,15 +364,23 @@ function initializeAuth() {
             container.prepend(message);
             
             // Remove after 5 seconds
-            setTimeout(() => message.remove(), 5000);
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.remove();
+                }
+            }, 5000);
         }
         
         getCurrentUser() {
             return this.currentUser;
         }
         
-        getSession() {
-            return this.supabase.auth.getSession();
+        async getSession() {
+            if (!this.session) {
+                const { data } = await this.supabase.auth.getSession();
+                this.session = data.session;
+            }
+            return this.session;
         }
         
         isAuthenticated() {
@@ -272,11 +389,21 @@ function initializeAuth() {
     }
     
     // Initialize and expose
-    window.supabaseAuth = new SimpleAuth();
+    authInstance = new SimpleAuth();
+    window.supabaseAuth = authInstance;
     window.supabaseClient = supabaseClient;
     
     console.log('✅ Auth initialized');
+    
+    // Check if workout tracker needs to be notified
+    if (authInstance.currentUser) {
+        setTimeout(() => authInstance.dispatchAuthEvent(), 100);
+    }
 }
 
-// Start initialization
-document.addEventListener('DOMContentLoaded', initializeAuth);
+// Start initialization when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAuth);
+} else {
+    initializeAuth();
+}
