@@ -108,6 +108,7 @@ body {
     text-align: center;
     margin-bottom: 25px;
     color: #333;
+    font-size: 1.5em;
 }
 
 .auth-switch {
@@ -121,22 +122,45 @@ body {
     color: #667eea;
     text-decoration: none;
     font-weight: 600;
+    transition: color 0.2s;
 }
 
 .auth-switch a:hover {
+    color: #764ba2;
     text-decoration: underline;
 }
 
-.data-warning {
+/* Database Status Indicator */
+.db-status {
     text-align: center;
-    margin-top: 20px;
-    padding: 10px;
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
+    margin-top: 15px;
+    padding: 8px 12px;
     border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+.db-status.connected {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.db-status.disconnected {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.db-status.pending {
+    background: #fff3cd;
     color: #856404;
-    font-size: 13px;
-    line-height: 1.4;
+    border: 1px solid #ffeaa7;
 }
 
 /* User Profile */
@@ -147,6 +171,18 @@ body {
     margin: 0 auto 20px auto;
     max-width: 900px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .profile-header {
@@ -160,6 +196,8 @@ body {
     height: 60px;
     border-radius: 50%;
     object-fit: cover;
+    border: 3px solid #667eea;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
 }
 
 .profile-info {
@@ -179,7 +217,7 @@ body {
 }
 
 .logout-btn {
-    background: #dc3545;
+    background: linear-gradient(90deg, #dc3545, #c82333);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -187,11 +225,19 @@ body {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .logout-btn:hover {
-    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
 }
 
 /* Main App Styles */
@@ -205,6 +251,14 @@ h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
+    animation: gradientShift 3s ease infinite;
+    background-size: 200% 200%;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .workout-form {
@@ -213,12 +267,21 @@ h1 {
     border-radius: 10px;
     margin-bottom: 30px;
     border: 2px solid #e9ecef;
+    animation: slideUp 0.5s ease 0.2s both;
 }
 
 .workout-form h3 {
     margin-bottom: 20px;
     color: #444;
     font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.workout-form h3::before {
+    content: '🏋️';
+    font-size: 1.2em;
 }
 
 .form-group {
@@ -231,6 +294,9 @@ h1 {
     color: #555;
     font-weight: 600;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 input, select {
@@ -243,12 +309,27 @@ input, select {
     font-size: 16px;
     transition: all 0.3s;
     font-family: inherit;
+    background: white;
 }
 
 input:focus, select:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+input[type="date"] {
+    cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
 }
 
 .primary-btn {
@@ -261,12 +342,30 @@ input:focus, select:focus {
     font-weight: 600;
     cursor: pointer;
     width: 100%;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
-.primary-btn:hover {
+.primary-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.primary-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.primary-btn::before {
+    content: '➕';
+    font-size: 1.2em;
 }
 
 .workout-list {
@@ -275,12 +374,21 @@ input:focus, select:focus {
     border-radius: 10px;
     padding: 25px;
     margin: 30px 0;
+    animation: slideUp 0.5s ease 0.4s both;
 }
 
 .workout-list h3 {
     margin-bottom: 20px;
     color: #444;
     font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.workout-list h3::before {
+    content: '📋';
+    font-size: 1.2em;
 }
 
 #workouts {
@@ -293,11 +401,31 @@ input:focus, select:focus {
     margin-bottom: 15px;
     border-radius: 8px;
     border-left: 5px solid #667eea;
-    transition: transform 0.2s;
+    transition: all 0.3s;
+    animation: fadeIn 0.5s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .workout-item:hover {
     transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.workout-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.05), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+}
+
+.workout-item:hover::before {
+    transform: translateX(100%);
 }
 
 .workout-header {
@@ -325,29 +453,54 @@ input:focus, select:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    flex-shrink: 0;
 }
 
 .delete-btn:hover {
     background: #c82333;
+    transform: scale(1.1);
+}
+
+.delete-btn:active {
+    transform: scale(0.95);
 }
 
 .workout-details {
     font-size: 16px;
     color: #555;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.workout-details small {
+    font-size: 14px;
+    color: #666;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
 }
 
 .workout-footer {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 14px;
     color: #777;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
 }
 
 .volume {
     font-weight: bold;
     color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 4px 10px;
+    border-radius: 6px;
 }
 
 .empty-state {
@@ -356,6 +509,13 @@ input:focus, select:focus {
     padding: 40px 20px;
     font-style: italic;
     font-size: 1.1em;
+    animation: fadeIn 0.5s ease;
+}
+
+.empty-subtitle {
+    font-size: 0.9em;
+    color: #999;
+    margin-top: 10px;
 }
 
 /* Message styles */
@@ -366,6 +526,17 @@ input:focus, select:focus {
     text-align: center;
     animation: slideDown 0.3s ease;
     font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.message::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
 }
 
 .message-success {
@@ -374,10 +545,18 @@ input:focus, select:focus {
     border: 2px solid #c3e6cb;
 }
 
+.message-success::before {
+    background: #28a745;
+}
+
 .message-error {
     background: #f8d7da;
     color: #721c24;
     border: 2px solid #f5c6cb;
+}
+
+.message-error::before {
+    background: #dc3545;
 }
 
 .message-info {
@@ -386,15 +565,18 @@ input:focus, select:focus {
     border: 2px solid #bee5eb;
 }
 
-@keyframes slideDown {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+.message-info::before {
+    background: #17a2b8;
+}
+
+.message-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 2px solid #ffeaa7;
+}
+
+.message-warning::before {
+    background: #ffc107;
 }
 
 /* Stats */
@@ -404,12 +586,22 @@ input:focus, select:focus {
     border-radius: 10px;
     margin: 30px 0;
     color: white;
+    animation: slideUp 0.5s ease 0.6s both;
 }
 
 .stats h3 {
     margin-bottom: 20px;
     text-align: center;
     font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.stats h3::before {
+    content: '📊';
+    font-size: 1.2em;
 }
 
 .stats-grid {
@@ -424,12 +616,18 @@ input:focus, select:focus {
     border-radius: 8px;
     text-align: center;
     backdrop-filter: blur(10px);
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
 }
 
 .stat-value {
     font-size: 32px;
     font-weight: bold;
     color: #667eea;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .stat-label {
@@ -438,6 +636,7 @@ input:focus, select:focus {
     text-transform: uppercase;
     margin-top: 5px;
     font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 /* Charts */
@@ -449,6 +648,7 @@ input:focus, select:focus {
     margin: 30px 0;
     height: 350px;
     position: relative;
+    animation: slideUp 0.5s ease 0.8s both;
 }
 
 .charts h3 {
@@ -456,6 +656,15 @@ input:focus, select:focus {
     color: #444;
     font-size: 1.3em;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.charts h3::before {
+    content: '📈';
+    font-size: 1.2em;
 }
 
 #progressChart {
@@ -470,12 +679,22 @@ input:focus, select:focus {
     border-radius: 10px;
     margin: 30px 0;
     text-align: center;
+    animation: slideUp 0.5s ease 1s both;
 }
 
 .timer h3 {
     margin-bottom: 20px;
     color: #444;
     font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.timer h3::before {
+    content: '⏱️';
+    font-size: 1.2em;
 }
 
 #timerDisplay {
@@ -484,6 +703,13 @@ input:focus, select:focus {
     color: #667eea;
     margin: 20px 0;
     font-family: 'Courier New', monospace;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    display: inline-block;
+    min-width: 150px;
 }
 
 #startTimer, #resetTimer {
@@ -495,24 +721,43 @@ input:focus, select:focus {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 #startTimer {
-    background: #28a745;
+    background: linear-gradient(90deg, #28a745, #20c997);
     color: white;
+}
+
+#startTimer:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+#startTimer:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
 }
 
 #resetTimer {
-    background: #6c757d;
+    background: linear-gradient(90deg, #6c757d, #5a6268);
     color: white;
 }
 
-#startTimer:hover {
-    background: #218838;
+#resetTimer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
 }
 
-#resetTimer:hover {
-    background: #5a6268;
+#startTimer::before {
+    content: '▶️';
+}
+
+#resetTimer::before {
+    content: '🔄';
 }
 
 /* Data Actions */
@@ -522,10 +767,11 @@ input:focus, select:focus {
     gap: 15px;
     justify-content: center;
     margin: 30px 0;
+    animation: slideUp 0.5s ease 1.2s both;
 }
 
 .secondary-btn {
-    background: #6c757d;
+    background: linear-gradient(90deg, #6c757d, #5a6268);
     color: white;
     border: none;
     padding: 12px 25px;
@@ -533,17 +779,39 @@ input:focus, select:focus {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     flex: 1;
     min-width: 200px;
     justify-content: center;
+    text-align: center;
 }
 
 .secondary-btn:hover {
-    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+
+.secondary-btn:active {
+    transform: translateY(0);
+}
+
+label.secondary-btn {
+    cursor: pointer;
+    position: relative;
+}
+
+input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
 
 .clear-btn {
@@ -555,14 +823,58 @@ input:focus, select:focus {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s;
     width: auto;
     display: inline-block;
+    animation: slideUp 0.5s ease 1.4s both;
 }
 
 .clear-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+.clear-btn:active {
+    transform: translateY(0);
+}
+
+.data-warning {
+    text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    background: #fff3cd;
+    border: 2px solid #ffeaa7;
+    border-radius: 8px;
+    color: #856404;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: slideUp 0.5s ease 1.6s both;
+}
+
+.data-warning strong {
+    font-weight: 700;
+}
+
+.data-warning a {
+    color: #856404;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 /* Mobile Responsiveness */
@@ -609,6 +921,7 @@ input:focus, select:focus {
     
     #timerDisplay {
         font-size: 32px;
+        min-width: 120px;
     }
     
     h1 {
@@ -625,6 +938,7 @@ input:focus, select:focus {
     .logout-btn {
         width: 100%;
         margin-top: 10px;
+        justify-content: center;
     }
     
     /* Date input alignment fix */
@@ -674,5 +988,17 @@ input:focus, select:focus {
     
     .form-group input {
         text-align: center;
+    }
+    
+    #startTimer, #resetTimer {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 14px;
+    }
+    
+    .delete-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 18px;
     }
 }

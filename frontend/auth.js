@@ -1,272 +1,553 @@
-// Enhanced Authentication System with Backup Features
-class AuthSystem {
-    constructor() {
-        this.currentUser = null;
-        this.usersKey = 'workoutTracker_users';
-        this.currentUserKey = 'workoutTracker_currentUser';
-        this.backupKey = 'workoutTracker_backup';
-        this.init();
+// Wait for config to load
+document.addEventListener('configLoaded', () => {
+    console.log('🔐 Starting Workout Tracker Auth...');
+    
+    // Check if Supabase is loaded
+    if (typeof supabase === 'undefined') {
+        console.error('❌ Supabase not loaded. Check script order in HTML.');
+        showErrorMessage('Supabase library not loaded. Please refresh the page.');
+        return;
     }
     
-    init() {
-        // Load current user from localStorage
-        const savedUser = localStorage.getItem(this.currentUserKey);
-        if (savedUser) {
-            this.currentUser = JSON.parse(savedUser);
-        }
-        
-        this.setupEventListeners();
-        this.checkAuthState();
-        this.setupBackupReminder();
+    // Get config from window object
+    const SUPABASE_CONFIG = window.SUPABASE_CONFIG;
+    const APP_CONFIG = window.APP_CONFIG;
+    
+    if (!SUPABASE_CONFIG || !SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+        console.error('❌ Supabase config not found. Check config.js');
+        showErrorMessage('Configuration error. Please check console.');
+        return;
     }
     
-    setupEventListeners() {
-        // Tab switching
-        document.querySelectorAll('.auth-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const tabName = e.target.dataset.tab;
-                this.switchTab(tabName);
-            });
-        });
-        
-        // Form switching links
-        document.querySelector('.switch-to-register')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.switchTab('register');
-        });
-        
-        document.querySelector('.switch-to-login')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.switchTab('login');
-        });
-        
-        // Form submissions
-        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleLogin();
-        });
-        
-        document.getElementById('registerForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleRegister();
-        });
-        
-        // Logout
-        document.getElementById('logoutBtn')?.addEventListener('click', () => {
-            this.handleLogout();
-        });
-        
-        // Backup button
-        document.getElementById('backupBtn')?.addEventListener('click', () => {
-            this.handleBackup();
-        });
-    }
+    console.log('✅ Supabase config loaded from environment');
     
-    switchTab(tabName) {
-        // Update active tab
-        document.querySelectorAll('.auth-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
-        });
-        
-        // Update active form
-        document.querySelectorAll('.auth-form').forEach(form => {
-            form.classList.toggle('active', form.id === `${tabName}Form`);
-        });
-    }
-    
-    handleLogin() {
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        
-        if (!email || !password) {
-            this.showMessage('Please fill in all fields', 'error', 'auth');
-            return;
-        }
-        
-        const users = this.getUsers();
-        const user = users.find(u => u.email === email && u.password === this.hashPassword(password));
-        
-        if (!user) {
-            this.showMessage('Invalid email or password', 'error', 'auth');
-            return;
-        }
-        
-        this.loginUser(user);
-    }
-    
-    handleRegister() {
-        const name = document.getElementById('registerName').value.trim();
-        const email = document.getElementById('registerEmail').value.trim();
-        const password = document.getElementById('registerPassword').value;
-        const confirmPassword = document.getElementById('registerConfirmPassword').value;
-        
-        // Validation
-        if (!name || !email || !password || !confirmPassword) {
-            this.showMessage('Please fill in all fields', 'error', 'auth');
-            return;
-        }
-        
-        if (password !== confirmPassword) {
-            this.showMessage('Passwords do not match', 'error', 'auth');
-            return;
-        }
-        
-        if (password.length < 6) {
-            this.showMessage('Password must be at least 6 characters', 'error', 'auth');
-            return;
-        }
-        
-        // Check if user already exists
-        const users = this.getUsers();
-        if (users.some(u => u.email === email)) {
-            this.showMessage('Email already registered', 'error', 'auth');
-            return;
-        }
-        
-        // Create new user
-        const newUser = {
-            id: Date.now(),
-            name,
-            email,
-            password: this.hashPassword(password),
-            createdAt: new Date().toISOString()
-        };
-        
-        // Save user
-        users.push(newUser);
-        localStorage.setItem(this.usersKey, JSON.stringify(users));
-        
-        // Auto login
-        this.loginUser(newUser);
-        this.showMessage('Account created successfully!', 'success', 'auth');
-    }
-    
-    loginUser(user) {
-        this.currentUser = {
-            id: user.id,
-            name: user.name,
-            email: user.email
-        };
-        
-        localStorage.setItem(this.currentUserKey, JSON.stringify(this.currentUser));
-        this.checkAuthState();
-        this.showMessage(`Welcome back, ${user.name}!`, 'success', 'app');
-        this.updateLastBackupTime();
-    }
-    
-    handleLogout() {
-        this.currentUser = null;
-        localStorage.removeItem(this.currentUserKey);
-        this.checkAuthState();
-        this.showMessage('Logged out successfully', 'info', 'auth');
-    }
-    
-    handleBackup() {
-        if (window.workoutTracker) {
-            window.workoutTracker.exportData();
-            this.updateLastBackupTime();
-            this.showMessage('Backup created successfully!', 'success', 'app');
-        }
-    }
-    
-    setupBackupReminder() {
-        // Check if backup is needed (older than 7 days)
-        const lastBackup = localStorage.getItem(this.backupKey);
-        if (lastBackup) {
-            const lastBackupDate = new Date(lastBackup);
-            const daysSinceBackup = Math.floor((Date.now() - lastBackupDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            if (daysSinceBackup >= 7) {
-                this.showMessage(`⚠️ It's been ${daysSinceBackup} days since your last backup. Export your data!`, 'error', 'app');
+    // Initialize Supabase
+    const supabaseClient = supabase.createClient(
+        SUPABASE_CONFIG.url,
+        SUPABASE_CONFIG.anonKey,
+        {
+            auth: {
+                storageKey: 'workout-tracker-auth',
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
             }
         }
-    }
-    
-    updateLastBackupTime() {
-        localStorage.setItem(this.backupKey, new Date().toISOString());
-    }
-    
-    getUsers() {
-        const usersJson = localStorage.getItem(this.usersKey);
-        return usersJson ? JSON.parse(usersJson) : [];
-    }
-    
-    hashPassword(password) {
-        // Simple hash for demo - IN PRODUCTION use bcrypt or similar
-        return btoa(password); // Base64 encoding (NOT secure for production)
-    }
-    
-    checkAuthState() {
-        const authModal = document.getElementById('authModal');
-        const userProfile = document.getElementById('userProfile');
-        const appContainer = document.getElementById('appContainer');
+    );
+
+    class SupabaseAuth {
+        constructor() {
+            this.currentUser = null;
+            this.session = null;
+            this.userProfile = null;
+            this.supabase = supabaseClient;
+            this.init();
+        }
         
-        if (this.currentUser) {
-            // User is logged in
-            authModal.style.display = 'none';
-            userProfile.style.display = 'block';
-            appContainer.style.display = 'block';
+        async init() {
+            console.log('🔐 Initializing auth...');
+            
+            // Setup event listeners first
+            this.setupEventListeners();
+            
+            // Check for existing session
+            try {
+                const { data: { session }, error } = await this.supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Session error:', error);
+                    this.showAuth();
+                    return;
+                }
+                
+                if (session) {
+                    console.log('✅ Found existing session');
+                    this.session = session;
+                    this.currentUser = session.user;
+                    await this.loadUserProfile();
+                    this.showApp();
+                } else {
+                    console.log('ℹ️ No session found');
+                    this.showAuth();
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+                this.showAuth();
+            }
+            
+            // Listen for auth state changes
+            this.supabase.auth.onAuthStateChange(async (event, session) => {
+                console.log('Auth state changed:', event);
+                
+                if (session) {
+                    this.session = session;
+                    this.currentUser = session.user;
+                    await this.loadUserProfile();
+                    this.showApp();
+                    
+                    if (event === 'SIGNED_IN') {
+                        const name = this.userProfile?.name || this.currentUser.email?.split('@')[0] || 'User';
+                        this.showMessage(`Welcome back, ${name}!`, 'success', 'app');
+                    }
+                } else {
+                    this.session = null;
+                    this.currentUser = null;
+                    this.userProfile = null;
+                    this.showAuth();
+                    
+                    if (event === 'SIGNED_OUT') {
+                        this.showMessage('Logged out successfully', 'info', 'auth');
+                    }
+                }
+            });
+        }
+        
+        setupEventListeners() {
+            // Tab switching
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabName = e.target.dataset.tab;
+                    this.switchTab(tabName);
+                });
+            });
+            
+            // Form switching links
+            const switchToRegister = document.querySelector('.switch-to-register');
+            const switchToLogin = document.querySelector('.switch-to-login');
+            
+            if (switchToRegister) {
+                switchToRegister.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchTab('register');
+                });
+            }
+            
+            if (switchToLogin) {
+                switchToLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchTab('login');
+                });
+            }
+            
+            // Form submissions
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+            }
+            
+            if (registerForm) {
+                registerForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleRegister();
+                });
+            }
+            
+            // Logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    this.handleLogout();
+                });
+            }
+            
+            console.log('✅ Event listeners setup complete');
+        }
+        
+        switchTab(tabName) {
+            // Update active tab
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            
+            // Update active form
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.toggle('active', form.id === `${tabName}Form`);
+            });
+            
+            // Focus first input in active form
+            setTimeout(() => {
+                const activeForm = document.querySelector('.auth-form.active');
+                if (activeForm) {
+                    const firstInput = activeForm.querySelector('input');
+                    if (firstInput) firstInput.focus();
+                }
+            }, 100);
+        }
+        
+        async handleLogin() {
+            const emailInput = document.getElementById('loginEmail');
+            const passwordInput = document.getElementById('loginPassword');
+            
+            if (!emailInput || !passwordInput) {
+                this.showMessage('Login form not found', 'error', 'auth');
+                return;
+            }
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                this.showMessage('Please fill in all fields', 'error', 'auth');
+                return;
+            }
+            
+            try {
+                this.showMessage('Logging in...', 'info', 'auth');
+                this.setLoading(true, 'login');
+                
+                const { data, error } = await this.supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    if (error.message.includes('Invalid login credentials')) {
+                        throw new Error('Invalid email or password');
+                    } else if (error.message.includes('Email not confirmed')) {
+                        throw new Error('Please confirm your email first');
+                    } else {
+                        throw error;
+                    }
+                }
+                
+                this.session = data.session;
+                this.currentUser = data.user;
+                await this.loadUserProfile();
+                
+                // Clear form
+                emailInput.value = '';
+                passwordInput.value = '';
+                
+                this.showMessage('Login successful!', 'success', 'auth');
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                this.showMessage(error.message || 'Login failed. Please try again.', 'error', 'auth');
+            } finally {
+                this.setLoading(false, 'login');
+            }
+        }
+        
+        async handleRegister() {
+            const nameInput = document.getElementById('registerName');
+            const emailInput = document.getElementById('registerEmail');
+            const passwordInput = document.getElementById('registerPassword');
+            const confirmPasswordInput = document.getElementById('registerConfirmPassword');
+            
+            if (!nameInput || !emailInput || !passwordInput || !confirmPasswordInput) {
+                this.showMessage('Registration form not found', 'error', 'auth');
+                return;
+            }
+            
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            // Validation
+            if (!name || !email || !password || !confirmPassword) {
+                this.showMessage('Please fill in all fields', 'error', 'auth');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                this.showMessage('Passwords do not match', 'error', 'auth');
+                return;
+            }
+            
+            if (password.length < 6) {
+                this.showMessage('Password must be at least 6 characters', 'error', 'auth');
+                return;
+            }
+            
+            if (!this.isValidEmail(email)) {
+                this.showMessage('Please enter a valid email address', 'error', 'auth');
+                return;
+            }
+            
+            try {
+                this.showMessage('Creating account...', 'info', 'auth');
+                this.setLoading(true, 'register');
+                
+                const { data, error } = await this.supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name: name
+                        },
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+                
+                if (error) {
+                    if (error.message.includes('already registered')) {
+                        throw new Error('Email already registered. Please login instead.');
+                    } else {
+                        throw error;
+                    }
+                }
+                
+                if (data.user?.identities?.length === 0) {
+                    this.showMessage('Email already registered. Please login instead.', 'error', 'auth');
+                    return;
+                }
+                
+                this.showMessage(
+                    '🎉 Registration successful! Please check your email to confirm your account.',
+                    'success', 
+                    'auth'
+                );
+                
+                // Clear form
+                nameInput.value = '';
+                emailInput.value = '';
+                passwordInput.value = '';
+                confirmPasswordInput.value = '';
+                
+                // Switch to login tab after a delay
+                setTimeout(() => {
+                    this.switchTab('login');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Registration error:', error);
+                this.showMessage(error.message || 'Registration failed. Please try again.', 'error', 'auth');
+            } finally {
+                this.setLoading(false, 'register');
+            }
+        }
+        
+        setLoading(isLoading, formType) {
+            const form = document.getElementById(`${formType}Form`);
+            if (!form) return;
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const spinner = submitBtn?.querySelector('.loading-spinner');
+            
+            if (submitBtn && spinner) {
+                submitBtn.disabled = isLoading;
+                spinner.style.display = isLoading ? 'inline-block' : 'none';
+            }
+        }
+        
+        async loadUserProfile() {
+            if (!this.currentUser) return;
+            
+            try {
+                const { data, error } = await this.supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', this.currentUser.id)
+                    .single();
+                
+                if (error && error.code === 'PGRST116') {
+                    // Profile doesn't exist yet - create it
+                    await this.createUserProfile();
+                } else if (error) {
+                    console.warn('Profile load warning:', error.message);
+                } else {
+                    this.userProfile = data;
+                }
+            } catch (error) {
+                console.error('Profile load error:', error);
+            }
+        }
+        
+        async createUserProfile() {
+            if (!this.currentUser) return;
+            
+            try {
+                const { data, error } = await this.supabase
+                    .from('profiles')
+                    .insert([{
+                        id: this.currentUser.id,
+                        name: this.currentUser.user_metadata?.name || this.currentUser.email?.split('@')[0] || 'User',
+                        email: this.currentUser.email,
+                        created_at: new Date().toISOString()
+                    }])
+                    .select()
+                    .single();
+                
+                if (error) {
+                    console.error('Create profile error:', error);
+                } else {
+                    this.userProfile = data;
+                    console.log('✅ Created user profile');
+                }
+            } catch (error) {
+                console.error('Create profile error:', error);
+            }
+        }
+        
+        async handleLogout() {
+            try {
+                this.showMessage('Logging out...', 'info', 'app');
+                const { error } = await this.supabase.auth.signOut();
+                if (error) throw error;
+                
+                this.session = null;
+                this.currentUser = null;
+                this.userProfile = null;
+                
+                this.showMessage('Logged out successfully', 'info', 'auth');
+                
+            } catch (error) {
+                console.error('Logout error:', error);
+                this.showMessage('Logout failed', 'error', 'auth');
+            }
+        }
+        
+        showApp() {
+            const authModal = document.getElementById('authModal');
+            const userProfile = document.getElementById('userProfile');
+            const appContainer = document.getElementById('appContainer');
+            
+            if (authModal) authModal.style.display = 'none';
+            if (userProfile) userProfile.style.display = 'block';
+            if (appContainer) appContainer.style.display = 'block';
             
             // Update profile info
-            document.getElementById('userName').textContent = this.currentUser.name;
-            document.getElementById('userEmail').textContent = this.currentUser.email;
-            document.querySelector('.profile-avatar').src = 
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(this.currentUser.name)}&background=667eea&color=fff`;
+            if (this.currentUser) {
+                const name = this.userProfile?.name || 
+                            this.currentUser.user_metadata?.name || 
+                            this.currentUser.email?.split('@')[0] || 
+                            'User';
+                const email = this.currentUser.email || 'user@example.com';
+                
+                const userNameElement = document.getElementById('userName');
+                const userEmailElement = document.getElementById('userEmail');
+                const avatarElement = document.querySelector('.profile-avatar');
+                
+                if (userNameElement) userNameElement.textContent = name;
+                if (userEmailElement) userEmailElement.textContent = email;
+                
+                if (avatarElement) {
+                    avatarElement.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff&bold=true&size=128`;
+                }
+                
+                // Trigger custom event for workout tracker
+                const authEvent = new CustomEvent('authStateChanged', { 
+                    detail: { 
+                        user: this.currentUser,
+                        profile: this.userProfile,
+                        session: this.session
+                    } 
+                });
+                document.dispatchEvent(authEvent);
+            }
+        }
+        
+        showAuth() {
+            const authModal = document.getElementById('authModal');
+            const userProfile = document.getElementById('userProfile');
+            const appContainer = document.getElementById('appContainer');
             
-            // Trigger custom event for workout tracker
-            document.dispatchEvent(new CustomEvent('authStateChanged', { 
-                detail: { user: this.currentUser } 
-            }));
-        } else {
-            // User is not logged in
-            authModal.style.display = 'flex';
-            userProfile.style.display = 'none';
-            appContainer.style.display = 'none';
+            if (authModal) authModal.style.display = 'flex';
+            if (userProfile) userProfile.style.display = 'none';
+            if (appContainer) appContainer.style.display = 'none';
             
             // Clear forms
-            document.getElementById('loginForm')?.reset();
-            document.getElementById('registerForm')?.reset();
-        }
-    }
-    
-    showMessage(text, type, location = 'auth') {
-        // Remove any existing messages
-        const existingMessages = document.querySelectorAll(`.${location}-message`);
-        existingMessages.forEach(msg => msg.remove());
-        
-        // Create message element
-        const message = document.createElement('div');
-        message.className = `message ${location}-message message-${type}`;
-        message.textContent = text;
-        
-        // Add to appropriate container
-        let container;
-        if (location === 'auth') {
-            container = document.querySelector('.auth-content');
-        } else {
-            container = document.querySelector('.container');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (loginForm) loginForm.reset();
+            if (registerForm) registerForm.reset();
+            
+            // Switch to login tab by default
+            setTimeout(() => {
+                this.switchTab('login');
+            }, 100);
         }
         
-        if (container) {
-            container.insertBefore(message, container.firstChild);
+        showMessage(text, type, location = 'auth') {
+            // Remove any existing messages
+            const selector = location === 'auth' ? '.auth-content' : '.container';
+            const container = document.querySelector(selector);
+            
+            if (!container) return;
+            
+            // Remove existing messages
+            const existingMessages = container.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            // Create message element
+            const message = document.createElement('div');
+            message.className = `message message-${type}`;
+            message.textContent = text;
+            
+            // Add to container
+            container.prepend(message);
             
             // Remove after 5 seconds
             setTimeout(() => {
-                if (message.parentNode === container) {
+                if (message.parentNode) {
                     message.remove();
                 }
             }, 5000);
         }
+        
+        isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        getCurrentUser() {
+            return this.currentUser;
+        }
+        
+        getUserProfile() {
+            return this.userProfile;
+        }
+        
+        getSession() {
+            return this.session;
+        }
+        
+        isAuthenticated() {
+            return this.currentUser !== null;
+        }
+        
+        getAuthHeaders() {
+            if (!this.session) return {};
+            
+            return {
+                'Authorization': `Bearer ${this.session.access_token}`,
+                'Content-Type': 'application/json'
+            };
+        }
     }
+
+    // Initialize auth system
+    window.supabaseAuth = new SupabaseAuth();
+    window.supabaseClient = supabaseClient;
     
-    getCurrentUser() {
-        return this.currentUser;
-    }
-    
-    isAuthenticated() {
-        return this.currentUser !== null;
+    console.log('✅ Auth system initialized');
+});
+
+// Helper function to show error message
+function showErrorMessage(message) {
+    const authModal = document.getElementById('authModal');
+    if (authModal) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+            text-align: center;
+            border: 1px solid #f5c6cb;
+        `;
+        errorDiv.innerHTML = `
+            <strong>Error:</strong> ${message}<br>
+            <small>Check browser console for details</small>
+        `;
+        authModal.querySelector('.auth-container').prepend(errorDiv);
     }
 }
-
-// Initialize auth system
-window.authSystem = new AuthSystem();
