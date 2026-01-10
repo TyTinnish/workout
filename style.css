@@ -601,4 +601,34 @@ input:focus, select:focus {
     .logout-btn {
         width: 100%;
     }
+    
+    /* FIX FOR DATE INPUT ON MOBILE */
+    input[type="date"] {
+        -webkit-appearance: none;
+        appearance: none;
+        min-height: 50px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Fix for iOS Safari date picker */
+    input[type="date"]::-webkit-date-and-time-value {
+        text-align: left;
+        margin-left: 0;
+    }
+    
+    /* Ensure date input text is centered */
+    input[type="date"],
+    input[type="date"]:focus {
+        text-align: center;
+    }
+    
+    /* Fix for the calendar icon alignment */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        position: absolute;
+        right: 15px;
+        width: 24px;
+        height: 24px;
+        opacity: 0.7;
+    }
 }
