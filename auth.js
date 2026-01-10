@@ -238,11 +238,15 @@ function initializeAuth() {
             try {
                 this.showMessage('Creating account...', 'info', 'auth');
                 
+                // Get current origin (where the app is hosted)
+                const siteUrl = window.location.origin;
+                
                 const { data, error } = await this.supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        data: { name }
+                        data: { name },
+                        emailRedirectTo: `${siteUrl}/`
                     }
                 });
                 
@@ -253,11 +257,26 @@ function initializeAuth() {
                     throw error;
                 }
                 
-                this.showMessage(
-                    'Registration successful! You can now login.',
-                    'success', 
-                    'auth'
-                );
+                // Show different message based on whether email confirmation is required
+                if (data.user?.identities?.length === 0) {
+                    this.showMessage('Email already registered. Please login instead.', 'error', 'auth');
+                    return;
+                }
+                
+                // Check if email confirmation is enabled
+                if (data.user && data.user.identities && data.user.identities.length > 0) {
+                    this.showMessage(
+                        'Registration successful! Please check your email to confirm your account.',
+                        'success', 
+                        'auth'
+                    );
+                } else {
+                    this.showMessage(
+                        'Registration successful! You can now login.',
+                        'success', 
+                        'auth'
+                    );
+                }
                 
                 // Clear form and switch to login
                 document.getElementById('registerForm').reset();
