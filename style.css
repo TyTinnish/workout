@@ -257,3 +257,20 @@ input:focus {
         margin: 15px 0;
     }
 }
+
+.clear-btn {
+    background: #dc3545 !important;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+    width: auto;
+    display: inline-block;
+}
+
+.clear-btn:hover {
+    background: #c82333 !important;
+}

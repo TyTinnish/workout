@@ -24,6 +24,7 @@ class WorkoutTracker {
     }
     
     init() {
+        console.log('Clear button exists:', document.getElementById('clearAllBtn'));
         this.setupEventListeners();
         this.displayWorkouts();
         this.updateStats();
@@ -36,6 +37,9 @@ class WorkoutTracker {
         document.getElementById('exercise').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addWorkout();
         });
+        
+        // Clear all workouts button
+        document.getElementById('clearAllBtn').addEventListener('click', () => this.clearAllWorkouts());
     }
     
     addWorkout() {
@@ -169,6 +173,21 @@ class WorkoutTracker {
         document.getElementById('totalWorkouts').textContent = todayWorkouts.length;
         document.getElementById('totalVolume').textContent = totalVolume.toLocaleString();
         document.getElementById('avgWeight').textContent = avgWeight;
+    }
+
+    clearAllWorkouts() {
+        if (this.workouts.length === 0) {
+            this.showMessage('No workouts to clear', 'info');
+            return;
+        }
+        
+        if (confirm('Are you sure? This will delete ALL workouts permanently!')) {
+            this.workouts = [];
+            this.saveWorkouts();
+            this.displayWorkouts();
+            this.updateStats();
+            this.showMessage('All workouts cleared', 'info');
+        }
     }
 }
 
