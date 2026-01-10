@@ -552,8 +552,8 @@ input:focus, select:focus {
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     .container, .user-profile {
-        padding: 20px;
-        margin: 10px;
+        padding: 15px;
+        margin: 5px;
     }
     
     .auth-container {
@@ -563,21 +563,24 @@ input:focus, select:focus {
     
     .stats-grid {
         grid-template-columns: 1fr;
-        gap: 15px;
+        gap: 10px;
     }
 
     .charts {
-        height: 300px;
+        height: 280px;
         padding: 15px;
     }
     
     #progressChart {
-        height: 200px !important;
+        height: 180px !important;
     }
     
-    input, button {
-        font-size: 18px;
-        padding: 15px;
+    input:not([type="date"]), 
+    button:not(#startTimer):not(#resetTimer),
+    select {
+        font-size: 16px;
+        padding: 12px;
+        height: 50px;
     }
     
     .data-actions {
@@ -585,11 +588,12 @@ input:focus, select:focus {
     }
     
     #timerDisplay {
-        font-size: 36px;
+        font-size: 32px;
     }
     
     h1 {
-        font-size: 2em;
+        font-size: 1.8em;
+        margin-bottom: 20px;
     }
     
     .profile-header {
@@ -600,35 +604,80 @@ input:focus, select:focus {
     
     .logout-btn {
         width: 100%;
+        margin-top: 10px;
     }
     
-    /* FIX FOR DATE INPUT ON MOBILE */
+    /* CRITICAL FIX: Date input alignment */
     input[type="date"] {
-        -webkit-appearance: none;
-        appearance: none;
-        min-height: 50px;
-        padding-left: 15px;
-        padding-right: 15px;
+        width: 100% !important;
+        height: 50px !important;
+        padding: 12px 15px !important;
+        font-size: 16px !important;
+        line-height: 1.5 !important;
+        text-align: center !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+        background-color: white !important;
+        border: 2px solid #ddd !important;
+        border-radius: 8px !important;
+        box-sizing: border-box !important;
+        display: block !important;
+        margin: 0 auto !important;
     }
     
-    /* Fix for iOS Safari date picker */
-    input[type="date"]::-webkit-date-and-time-value {
-        text-align: left;
-        margin-left: 0;
+    /* Remove default date picker styling */
+    input[type="date"]::-webkit-inner-spin-button,
+    input[type="date"]::-webkit-clear-button {
+        display: none;
     }
     
-    /* Ensure date input text is centered */
-    input[type="date"],
-    input[type="date"]:focus {
-        text-align: center;
-    }
-    
-    /* Fix for the calendar icon alignment */
     input[type="date"]::-webkit-calendar-picker-indicator {
         position: absolute;
-        right: 15px;
+        right: 10px;
         width: 24px;
         height: 24px;
-        opacity: 0.7;
+        background: transparent;
+        color: transparent;
+        cursor: pointer;
+        opacity: 0.5;
+    }
+    
+    /* iOS Safari specific fixes */
+    @supports (-webkit-touch-callout: none) {
+        input[type="date"] {
+            min-height: 44px; /* Apple's recommended touch target size */
+            padding: 10px 40px 10px 15px !important;
+        }
+        
+        .form-group input[type="date"] {
+            line-height: 22px !important;
+        }
+    }
+    
+    /* Android Chrome specific */
+    @supports not (-webkit-touch-callout: none) {
+        input[type="date"] {
+            padding: 12px 40px 12px 12px !important;
+        }
+    }
+    
+    /* Workout form specific adjustments */
+    .workout-form {
+        padding: 15px;
+    }
+    
+    .workout-form h3 {
+        font-size: 1.3em;
+        margin-bottom: 15px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    /* Ensure all inputs in form group have same styling */
+    .form-group input {
+        text-align: center;
     }
 }
