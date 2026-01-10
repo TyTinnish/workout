@@ -7,14 +7,39 @@ class WorkoutTracker {
         this.workouts = [];
         this.chart = null;
         this.currentUser = null;
-        this.apiUrl = window.APP_CONFIG?.apiUrl || 'http://localhost:3000';
+        this.apiUrl = ''; // Will be set after config loads
         
-        // Initialize immediately
-        this.init();
+        // Wait for config to load before initializing
+        this.waitForConfig();
+    }
+    
+    async waitForConfig() {
+        // Check if config is already loaded
+        if (window.APP_CONFIG && window.APP_CONFIG.apiUrl) {
+            this.apiUrl = window.APP_CONFIG.apiUrl;
+            this.init();
+        } else {
+            // Wait for config to load
+            console.log('Waiting for config to load...');
+            document.addEventListener('configLoaded', () => {
+                this.apiUrl = window.APP_CONFIG.apiUrl;
+                this.init();
+            });
+            
+            // Timeout fallback
+            setTimeout(() => {
+                if (!this.apiUrl) {
+                    console.warn('Config loading timeout, using defaults');
+                    this.apiUrl = 'http://localhost:3000';
+                    this.init();
+                }
+            }, 3000);
+        }
     }
     
     async init() {
         console.log('Initializing workout tracker...');
+        console.log('API URL:', this.apiUrl);
         
         // Check if user is already logged in
         if (window.supabaseAuth?.isAuthenticated()) {
@@ -115,8 +140,49 @@ class WorkoutTracker {
         console.log('Loading workouts for user:', this.currentUser.email);
         
         try {
-            // For now, we'll use local storage as backup
-            // In the future, this will call the API
+            // Try to load from backend API first
+            const session = await window.supabaseAuth.getSession();
+            const token = session?.access_token;
+            
+            if (token && this.apiUrl) {
+                console.log('Attempting to load workouts from backend...');
+                const response = await fetch(`${this.apiUrl}/api/workouts`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const serverWorkouts = await response.json();
+                    console.log('Loaded', serverWorkouts.length, 'workouts from server');
+                    
+                    // Transform server data to match our format
+                    this.workouts = serverWorkouts.map(w => ({
+                        id: w.id,
+                        exercise: w.exercise,
+                        sets: w.sets,
+                        reps: w.reps,
+                        weight: w.weight,
+                        workout_date: w.workout_date,
+                        created_at: w.created_at,
+                        user_id: w.user_id
+                    }));
+                    
+                    // Also save to localStorage as backup
+                    localStorage.setItem('workoutTracker_workouts', JSON.stringify(this.workouts));
+                } else {
+                    // Fallback to local storage
+                    throw new Error('Server load failed');
+                }
+            } else {
+                // Fallback to local storage
+                throw new Error('No token or API URL');
+            }
+            
+        } catch (error) {
+            console.log('Falling back to localStorage:', error.message);
+            
+            // Fallback to local storage
             const storedWorkouts = localStorage.getItem('workoutTracker_workouts');
             if (storedWorkouts) {
                 this.workouts = JSON.parse(storedWorkouts);
@@ -125,17 +191,11 @@ class WorkoutTracker {
                 this.workouts = [];
                 console.log('No workouts in localStorage');
             }
-            
-            this.displayWorkouts();
-            this.updateStats();
-            this.renderChart();
-            
-        } catch (error) {
-            console.error('Error loading workouts:', error);
-            this.showMessage('Failed to load workouts', 'error');
-            this.workouts = [];
-            this.displayWorkouts();
         }
+        
+        this.displayWorkouts();
+        this.updateStats();
+        this.renderChart();
     }
     
     async addWorkout() {
@@ -220,8 +280,8 @@ class WorkoutTracker {
             const session = await window.supabaseAuth.getSession();
             const token = session?.access_token;
             
-            if (!token) {
-                console.log('No auth token, skipping backend save');
+            if (!token || !this.apiUrl) {
+                console.log('No auth token or API URL, skipping backend save');
                 return;
             }
             
@@ -243,7 +303,13 @@ class WorkoutTracker {
             });
             
             if (response.ok) {
-                console.log('Successfully saved to backend');
+                const result = await response.json();
+                console.log('Successfully saved to backend:', result);
+                // Update the local ID with the server ID
+                if (result.workout && result.workout.id) {
+                    workout.id = result.workout.id;
+                    localStorage.setItem('workoutTracker_workouts', JSON.stringify(this.workouts));
+                }
             } else {
                 const errorText = await response.text();
                 console.log('Backend save failed:', response.status, errorText);
