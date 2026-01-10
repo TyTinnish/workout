@@ -1,63 +1,45 @@
-// auth.js - UPDATED VERSION
+// auth.js - FINAL WORKING VERSION
 console.log('Loading auth.js...');
 
 // Global auth instance
 let authInstance = null;
 
-// Wait for config to load
+// Wait for config and Supabase to load
 function initializeAuth() {
-    console.log('Initializing auth...');
-    
-    // Check if config is loaded
-    if (!window.APP_CONFIG || !window.APP_CONFIG.apiUrl) {
-        console.log('Waiting for config to load...');
-        document.addEventListener('configLoaded', initializeAuth);
-        return;
-    }
+    console.log('🔄 Initializing authentication...');
     
     // Check for Supabase CDN
     if (typeof supabase === 'undefined') {
-        console.error('Supabase not loaded yet');
+        console.error('❌ Supabase not loaded yet');
         setTimeout(initializeAuth, 100);
         return;
     }
     
-    console.log('Config loaded, initializing Supabase client...');
-    
-    // Initialize Supabase client with config
-    const supabaseClient = supabase.createClient(
-        window.APP_CONFIG.supabaseUrl,  // Will be empty if not from server
-        window.APP_CONFIG.supabaseAnonKey,  // Will be empty if not from server
-        {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true,
-                storage: window.localStorage,
-                detectSessionInUrl: false
-            }
-        }
-    );
-    
-    // For development/testing, you can hardcode credentials temporarily
-    // but REMOVE this before deploying to production
-    const DEVELOPMENT_CONFIG = {
-        url: '',  // Add your Supabase URL here for development only
-        anonKey: ''  // Add your Supabase anon key here for development only
-    };
-    
-    // Use development config if server config not available
-    let effectiveUrl = window.APP_CONFIG.supabaseUrl || DEVELOPMENT_CONFIG.url;
-    let effectiveKey = window.APP_CONFIG.supabaseAnonKey || DEVELOPMENT_CONFIG.anonKey;
-    
-    if (!effectiveUrl || !effectiveKey) {
-        console.error('Supabase credentials not configured');
-        console.log('Please ensure config is loaded from server or set in development config');
+    // Check if config is loaded
+    if (!window.APP_CONFIG || !window.APP_CONFIG.apiUrl) {
+        console.log('⏳ Waiting for config to load...');
+        document.addEventListener('configLoaded', initializeAuth);
         return;
     }
     
-    const finalSupabaseClient = supabase.createClient(
-        effectiveUrl,
-        effectiveKey,
+    console.log('✅ Config loaded, checking Supabase credentials...');
+    
+    // Validate config
+    if (!window.APP_CONFIG.supabaseUrl || !window.APP_CONFIG.supabaseAnonKey) {
+        console.error('❌ Supabase credentials not configured');
+        console.error('Please check your config.js or ensure server is running');
+        
+        // Show user-friendly error
+        showConfigError();
+        return;
+    }
+    
+    console.log('🔐 Initializing Supabase client...');
+    
+    // Initialize Supabase client
+    const supabaseClient = supabase.createClient(
+        window.APP_CONFIG.supabaseUrl,
+        window.APP_CONFIG.supabaseAnonKey,
         {
             auth: {
                 persistSession: true,
@@ -70,14 +52,14 @@ function initializeAuth() {
     
     class SimpleAuth {
         constructor() {
-            this.supabase = finalSupabaseClient;
+            this.supabase = supabaseClient;
             this.currentUser = null;
             this.session = null;
             this.init();
         }
         
         async init() {
-            console.log('Checking for existing session...');
+            console.log('🔍 Checking for existing session...');
             
             try {
                 // Check existing session
@@ -90,21 +72,21 @@ function initializeAuth() {
                 }
                 
                 if (session) {
-                    console.log('Found existing session for user:', session.user.email);
+                    console.log('✅ Found existing session for user:', session.user.email);
                     this.session = session;
                     this.currentUser = session.user;
                     this.showApp();
                     
-                    // IMPORTANT: Dispatch event immediately
+                    // Dispatch event immediately
                     this.dispatchAuthEvent();
                 } else {
-                    console.log('No session found');
+                    console.log('👤 No session found, showing auth UI');
                     this.showAuth();
                 }
                 
                 // Listen for auth changes
                 this.supabase.auth.onAuthStateChange((event, session) => {
-                    console.log('Auth state changed:', event);
+                    console.log('🔄 Auth state changed:', event);
                     
                     if (session) {
                         this.session = session;
@@ -148,10 +130,12 @@ function initializeAuth() {
                 }
             });
             document.dispatchEvent(event);
-            console.log('Dispatched authStateChanged event');
+            console.log('📢 Dispatched authStateChanged event');
         }
         
         setupEventListeners() {
+            console.log('🔗 Setting up event listeners...');
+            
             // Login form
             const loginForm = document.getElementById('loginForm');
             if (loginForm) {
@@ -159,6 +143,7 @@ function initializeAuth() {
                     e.preventDefault();
                     await this.handleLogin();
                 });
+                console.log('✅ Login form listener added');
             }
             
             // Register form
@@ -168,6 +153,7 @@ function initializeAuth() {
                     e.preventDefault();
                     await this.handleRegister();
                 });
+                console.log('✅ Register form listener added');
             }
             
             // Logout button
@@ -176,6 +162,7 @@ function initializeAuth() {
                 logoutBtn.addEventListener('click', () => {
                     this.handleLogout();
                 });
+                console.log('✅ Logout button listener added');
             }
             
             // Tab switching
@@ -185,8 +172,9 @@ function initializeAuth() {
                     this.switchTab(tabName);
                 });
             });
+            console.log('✅ Tab switching listeners added');
             
-            // Switch to register
+            // Switch to register link
             const switchToRegister = document.querySelector('.switch-to-register');
             if (switchToRegister) {
                 switchToRegister.addEventListener('click', (e) => {
@@ -195,7 +183,7 @@ function initializeAuth() {
                 });
             }
             
-            // Switch to login
+            // Switch to login link
             const switchToLogin = document.querySelector('.switch-to-login');
             if (switchToLogin) {
                 switchToLogin.addEventListener('click', (e) => {
@@ -204,10 +192,11 @@ function initializeAuth() {
                 });
             }
             
-            console.log('Event listeners setup complete');
+            console.log('✅ All event listeners setup complete');
         }
         
         async handleLogin() {
+            console.log('🔐 Handling login...');
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             
@@ -218,6 +207,7 @@ function initializeAuth() {
             
             try {
                 this.showMessage('Logging in...', 'info', 'auth');
+                console.log('Attempting login for:', email);
                 
                 const { data, error } = await this.supabase.auth.signInWithPassword({
                     email,
@@ -225,8 +215,12 @@ function initializeAuth() {
                 });
                 
                 if (error) {
+                    console.error('Login error:', error);
                     if (error.message.includes('Invalid login credentials')) {
                         throw new Error('Invalid email or password');
+                    }
+                    if (error.message.includes('Email not confirmed')) {
+                        throw new Error('Please confirm your email first');
                     }
                     throw error;
                 }
@@ -238,17 +232,19 @@ function initializeAuth() {
                 document.getElementById('loginForm').reset();
                 
                 this.showMessage('Login successful!', 'success', 'auth');
+                console.log('✅ Login successful for:', email);
                 
                 // Dispatch event
                 this.dispatchAuthEvent();
                 
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('Login failed:', error);
                 this.showMessage(error.message || 'Login failed', 'error', 'auth');
             }
         }
         
         async handleRegister() {
+            console.log('📝 Handling registration...');
             const name = document.getElementById('registerName').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
@@ -271,8 +267,9 @@ function initializeAuth() {
             
             try {
                 this.showMessage('Creating account...', 'info', 'auth');
+                console.log('Attempting registration for:', email);
                 
-                // Get current origin (where the app is hosted)
+                // Get current origin
                 const siteUrl = window.location.origin;
                 
                 const { data, error } = await this.supabase.auth.signUp({
@@ -285,31 +282,37 @@ function initializeAuth() {
                 });
                 
                 if (error) {
+                    console.error('Registration error:', error);
                     if (error.message.includes('already registered')) {
                         throw new Error('Email already registered');
+                    }
+                    if (error.message.includes('User already registered')) {
+                        throw new Error('Email already registered. Please login instead.');
                     }
                     throw error;
                 }
                 
-                // Show different message based on whether email confirmation is required
+                // Check registration result
                 if (data.user?.identities?.length === 0) {
                     this.showMessage('Email already registered. Please login instead.', 'error', 'auth');
                     return;
                 }
                 
-                // Check if email confirmation is enabled
+                // Show appropriate message
                 if (data.user && data.user.identities && data.user.identities.length > 0) {
                     this.showMessage(
-                        'Registration successful! Please check your email to confirm your account.',
+                        '✅ Registration successful! Please check your email to confirm your account.',
                         'success', 
                         'auth'
                     );
+                    console.log('✅ Registration successful, email confirmation sent to:', email);
                 } else {
                     this.showMessage(
-                        'Registration successful! You can now login.',
+                        '✅ Registration successful! You can now login.',
                         'success', 
                         'auth'
                     );
+                    console.log('✅ Registration successful, no email confirmation required for:', email);
                 }
                 
                 // Clear form and switch to login
@@ -317,7 +320,7 @@ function initializeAuth() {
                 setTimeout(() => this.switchTab('login'), 2000);
                 
             } catch (error) {
-                console.error('Registration error:', error);
+                console.error('Registration failed:', error);
                 this.showMessage(error.message || 'Registration failed', 'error', 'auth');
             }
         }
@@ -325,10 +328,15 @@ function initializeAuth() {
         async handleLogout() {
             try {
                 this.showMessage('Logging out...', 'info', 'app');
+                console.log('👋 Logging out user:', this.currentUser?.email);
+                
                 await this.supabase.auth.signOut();
                 this.currentUser = null;
                 this.session = null;
+                
                 this.showMessage('Logged out successfully', 'info', 'auth');
+                console.log('✅ Logout successful');
+                
             } catch (error) {
                 console.error('Logout error:', error);
                 this.showMessage('Logout failed', 'error', 'auth');
@@ -336,6 +344,8 @@ function initializeAuth() {
         }
         
         switchTab(tabName) {
+            console.log('🔄 Switching to tab:', tabName);
+            
             // Update tabs
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.classList.toggle('active', tab.dataset.tab === tabName);
@@ -348,7 +358,7 @@ function initializeAuth() {
         }
         
         showApp() {
-            console.log('Showing app UI');
+            console.log('🏋️ Showing app UI');
             
             const authModal = document.getElementById('authModal');
             const userProfile = document.getElementById('userProfile');
@@ -377,12 +387,12 @@ function initializeAuth() {
                     avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff`;
                 }
                 
-                console.log('Updated user info:', name, email);
+                console.log('👤 Updated user info:', name, email);
             }
         }
         
         showAuth() {
-            console.log('Showing auth UI');
+            console.log('🔐 Showing auth UI');
             
             const authModal = document.getElementById('authModal');
             const userProfile = document.getElementById('userProfile');
@@ -393,8 +403,12 @@ function initializeAuth() {
             if (appContainer) appContainer.style.display = 'none';
             
             // Reset forms and default to login tab
-            document.getElementById('loginForm').reset();
-            document.getElementById('registerForm').reset();
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (loginForm) loginForm.reset();
+            if (registerForm) registerForm.reset();
+            
             this.switchTab('login');
         }
         
@@ -444,14 +458,34 @@ function initializeAuth() {
     // Initialize and expose
     authInstance = new SimpleAuth();
     window.supabaseAuth = authInstance;
-    window.supabaseClient = finalSupabaseClient;
+    window.supabaseClient = supabaseClient;
     
-    console.log('✅ Auth initialized');
+    console.log('✅ Auth system fully initialized');
     
     // Check if workout tracker needs to be notified
     if (authInstance.currentUser) {
         setTimeout(() => authInstance.dispatchAuthEvent(), 100);
     }
+}
+
+// Show config error to user
+function showConfigError() {
+    const authContent = document.querySelector('.auth-content');
+    if (!authContent) return;
+    
+    // Remove existing messages
+    const existing = authContent.querySelectorAll('.message');
+    existing.forEach(msg => msg.remove());
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'message message-error';
+    errorDiv.innerHTML = `
+        <strong>Configuration Error</strong><br>
+        <small>Unable to connect to authentication service.</small><br>
+        <small>Please ensure the backend server is running on port 3000.</small>
+    `;
+    
+    authContent.prepend(errorDiv);
 }
 
 // Start initialization when DOM is ready

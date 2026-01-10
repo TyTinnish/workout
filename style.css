@@ -1073,3 +1073,120 @@ input[type="file"] {
         font-size: 18px;
     }
 }
+
+/* Add to style.css */
+.auth-tab, .primary-btn, .logout-btn {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 10 !important;
+    position: relative !important;
+}
+
+/* Make sure nothing is covering the buttons */
+.auth-modal {
+    z-index: 1000 !important;
+}
+
+.auth-container {
+    z-index: 1001 !important;
+}
+
+/* Disable any potential overlay blocking */
+.auth-modal::before {
+    display: none !important;
+}
+
+/* ===== ADDITIONAL STYLES ===== */
+
+/* Config error message */
+.config-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 2px solid #f5c6cb;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 400px;
+    text-align: center;
+    animation: slideDown 0.3s ease;
+}
+
+/* Loading animation */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50%;
+    border-top-color: #667eea;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Form validation styles */
+input:invalid {
+    border-color: #dc3545 !important;
+}
+
+input:valid {
+    border-color: #28a745 !important;
+}
+
+/* Button states */
+.primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Responsive improvements for auth */
+@media (max-width: 480px) {
+    .auth-container {
+        margin: 10px;
+        padding: 20px;
+        border-radius: 10px;
+    }
+    
+    .auth-tab {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .auth-form h3 {
+        font-size: 1.3em;
+    }
+    
+    .form-group input {
+        padding: 12px;
+        font-size: 16px; /* Prevents iOS zoom */
+    }
+}
+
+/* Ensure buttons are always clickable */
+button, 
+input[type="button"], 
+input[type="submit"], 
+.auth-tab {
+    cursor: pointer !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    touch-action: manipulation !important;
+}
+
+/* Prevent any overlay from blocking clicks */
+* {
+    pointer-events: auto !important;
+}
+
+/* Fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+    input, select, textarea, button {
+        font-size: 16px !important; /* Prevents zoom on focus */
+        min-height: 44px !important; /* Better touch target */
+    }
+}

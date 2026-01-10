@@ -29,9 +29,10 @@ app.get('/api/health', (req, res) => {
 app.get('/api/public-config', (req, res) => {
     res.json({
         supabaseUrl: process.env.SUPABASE_URL,
-        supabaseAnonKey: process.env.SUPABASE_ANON_KEY, // This is safe - anon key is meant for frontend
+        supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
         appName: 'Workout Tracker',
-        apiUrl: `http://localhost:${process.env.PORT || 3000}`
+        apiUrl: `http://localhost:${process.env.PORT || 3000}`,
+        version: '1.0.0'
     });
 });
 
@@ -137,5 +138,6 @@ app.get('/api/workouts', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`📡 Public config available at: http://localhost:${PORT}/api/public-config`);
 });

@@ -1,60 +1,60 @@
-// config.js - UPDATED SECURE VERSION
+// config.js - FINAL SECURE VERSION
 console.log('Loading config.js...');
 
-// Configuration loaded from environment or default values
-// Supabase config will be loaded from environment variables at runtime
-// or from server endpoint for security
-
+// Configuration loaded securely from server or environment
 const APP_CONFIG = {
     appName: 'Workout Tracker',
     version: '1.0.0',
     localStoragePrefix: 'wt_',
-    // This will be set when we load config from server
+    // These will be loaded dynamically
     apiUrl: '',
     supabaseUrl: '',
     supabaseAnonKey: ''
 };
 
-// Initialize with empty values for now
-window.APP_CONFIG = APP_CONFIG;
-
-// Function to load config securely from server
-async function loadConfig() {
+// Try to load config from server first (most secure)
+async function loadConfigFromServer() {
     try {
-        // Try to load config from server first (more secure)
-        const response = await fetch('/api/public-config');
+        const response = await fetch('http://localhost:3000/api/public-config');
         if (response.ok) {
             const serverConfig = await response.json();
-            console.log('Loaded config from server:', serverConfig);
-            
-            // Merge server config with defaults
-            window.APP_CONFIG = {
-                ...APP_CONFIG,
-                ...serverConfig
-            };
-        } else {
-            // Fallback to direct Supabase config (less secure)
-            console.warn('Server config not available, using fallback');
-            window.APP_CONFIG = {
-                ...APP_CONFIG,
-                apiUrl: 'http://localhost:3000',
-                // In production, these should come from environment variables
-                // or be loaded from a secure endpoint
-                supabaseUrl: '',
-                supabaseAnonKey: ''
-            };
+            console.log('✅ Loaded config securely from server');
+            window.APP_CONFIG = { ...APP_CONFIG, ...serverConfig };
+            return true;
         }
     } catch (error) {
-        console.error('Failed to load config:', error);
-        // Fallback for development
-        window.APP_CONFIG = {
-            ...APP_CONFIG,
-            apiUrl: 'http://localhost:3000'
-        };
+        console.log('⚠️ Server config not available:', error.message);
+    }
+    return false;
+}
+
+// Development fallback - SET THESE FOR LOCAL TESTING
+function loadDevelopmentConfig() {
+    console.log('⚠️ Using development configuration');
+    window.APP_CONFIG = {
+        ...APP_CONFIG,
+        apiUrl: 'http://localhost:3000',
+        // ⚠️ TEMPORARY: Add your Supabase credentials here for testing
+        // ⚠️ REMOVE before deploying to production
+        supabaseUrl: 'https://xlrobutyqqfuqujzbnvi.supabase.co',
+        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhscm9idXR5cXFmdXF1anpibnZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMTMyMTIsImV4cCI6MjA4MzU4OTIxMn0.6Yqb0Fdd1cFuNhrweXWELH5iwz5qh03Dw8vnRKiIyLA'
+    };
+}
+
+// Main config loader
+async function loadConfig() {
+    console.log('🔄 Loading configuration...');
+    
+    // Try server first, then fallback
+    const loadedFromServer = await loadConfigFromServer();
+    
+    if (!loadedFromServer) {
+        loadDevelopmentConfig();
     }
     
-    console.log('✅ Config loaded');
-    console.log('API URL:', window.APP_CONFIG.apiUrl);
+    console.log('✅ Config loaded successfully');
+    console.log('📡 API URL:', window.APP_CONFIG.apiUrl);
+    console.log('🔗 Supabase URL:', window.APP_CONFIG.supabaseUrl ? 'Configured' : 'Not configured');
     
     // Dispatch event to let other scripts know config is ready
     document.dispatchEvent(new CustomEvent('configLoaded'));
