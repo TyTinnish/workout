@@ -1,0 +1,27 @@
+{
+  "name": "workout",
+  "version": "1.0.0",
+  "description": "A full-featured workout tracking application with cloud synchronization, user authentication, and progress analytics.",
+  "main": "auth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TyTinnish/workout.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TyTinnish/workout/issues"
+  },
+  "homepage": "https://github.com/TyTinnish/workout#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  }
+}
