@@ -332,6 +332,77 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
 }
 
+/* Add this to your existing style.css, preferably near the input styles */
+
+/* Fix input text color */
+input, select, textarea {
+    color: #333 !important; /* Force dark text color */
+}
+
+/* Specific fixes for different input types */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"] {
+    color: #333 !important;
+    background-color: white !important;
+}
+
+/* Placeholder text */
+input::placeholder {
+    color: #999 !important;
+    opacity: 1 !important;
+}
+
+/* Focus state */
+input:focus {
+    color: #333 !important;
+    background-color: white !important;
+}
+
+/* Auth form specific fixes */
+.auth-form input {
+    color: #333 !important;
+    background-color: white !important;
+    border: 2px solid #ddd !important;
+}
+
+.auth-form input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+}
+
+/* Workout form specific fixes */
+.workout-form input {
+    color: #333 !important;
+    background-color: white !important;
+    border: 2px solid #ddd !important;
+}
+
+.workout-form input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+}
+
+/* Date input specific */
+input[type="date"] {
+    color: #333 !important;
+    background-color: white !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5); /* Make calendar icon visible */
+}
+
+/* Fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+    input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on focus */
+        color: #333 !important;
+    }
+}
+
 .primary-btn {
     background: linear-gradient(90deg, #667eea, #764ba2);
     color: white;

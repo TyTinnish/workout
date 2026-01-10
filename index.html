@@ -21,6 +21,30 @@
             }
         }, 2000);
     </script>
+
+    <style>
+        /* Temporary fix for input visibility */
+        input {
+            color: #333 !important;
+            background-color: white !important;
+        }
+        
+        /* Make sure placeholder text is visible */
+        ::placeholder {
+            color: #999 !important;
+            opacity: 1 !important;
+        }
+        
+        /* Date input specific */
+        input[type="date"] {
+            color: #333 !important;
+        }
+        
+        /* Number input specific */
+        input[type="number"] {
+            color: #333 !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Error Message -->
